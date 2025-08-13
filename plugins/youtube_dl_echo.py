@@ -29,6 +29,15 @@ from pyrogram.types import InlineKeyboardMarkup, InlineKeyboardButton, Message
 from pyrogram.errors import UserNotParticipant
 from pyrogram import Client, enums
 
+# Check if LK21 is available due to Python compatibility issues
+try:
+    import lk21
+    LK21_AVAILABLE = True
+except ImportError:
+    LK21_AVAILABLE = False
+    logger.warning("lk21 module not found or incompatible. LK21 bypass will not be available.")
+
+
 @pyrogram.Client.on_message(pyrogram.filters.regex(pattern=".*http.*"))
 async def echo(bot: Client, update: Message):
     if update.from_user.id in Config.AUTH_USERS:
@@ -40,7 +49,7 @@ async def echo(bot: Client, update: Message):
         folder = f'./lk21/{update.from_user.id}/'
         bypass = ['zippyshare', 'hxfile', 'mediafire', 'anonfiles', 'antfiles']
         ext = tldextract.extract(url)
-        if ext.domain in bypass:
+        if ext.domain in bypass and LK21_AVAILABLE:
             pablo = await update.reply_text('LK21 link detected')
             time.sleep(2.5)
             if os.path.isdir(folder):
@@ -119,6 +128,9 @@ async def echo(bot: Client, update: Message):
                 )
             await pablo.delete()
             shutil.rmtree(folder)
+            return
+        elif ext.domain in bypass and not LK21_AVAILABLE:
+            await update.reply_text('LK21 bypass not available due to Python compatibility issues. Please use direct links.')
             return
         if "|" in url:
             url_parts = url.split("|")
