@@ -1,0 +1,83 @@
+}
+2025-08-13 10:51:34,503 - urllib3.connectionpool - DEBUG - Starting new HTTPS connection (1): i.ytimg.com:443
+2025-08-13 10:51:34,895 - urllib3.connectionpool - DEBUG - https://i.ytimg.com:443 "GET /vi_webp/GZvrGLFYWH0/maxresdefault.webp HTTP/1.1" 200 170316
+2025-08-13 10:51:35,071 - PIL.Image - DEBUG - Importing AvifImagePlugin
+2025-08-13 10:51:35,074 - PIL.Image - DEBUG - Importing BlpImagePlugin
+2025-08-13 10:51:35,076 - PIL.Image - DEBUG - Importing BmpImagePlugin
+2025-08-13 10:51:35,076 - PIL.Image - DEBUG - Importing BufrStubImagePlugin
+2025-08-13 10:51:35,077 - PIL.Image - DEBUG - Importing CurImagePlugin
+2025-08-13 10:51:35,078 - PIL.Image - DEBUG - Importing DcxImagePlugin
+2025-08-13 10:51:35,079 - PIL.Image - DEBUG - Importing DdsImagePlugin
+2025-08-13 10:51:35,087 - PIL.Image - DEBUG - Importing EpsImagePlugin
+2025-08-13 10:51:35,089 - PIL.Image - DEBUG - Importing FitsImagePlugin
+2025-08-13 10:51:35,089 - PIL.Image - DEBUG - Importing FliImagePlugin
+2025-08-13 10:51:35,092 - PIL.Image - DEBUG - Importing FpxImagePlugin
+2025-08-13 10:51:35,094 - PIL.Image - DEBUG - Importing FtexImagePlugin
+2025-08-13 10:51:35,094 - PIL.Image - DEBUG - Importing GbrImagePlugin
+2025-08-13 10:51:35,094 - PIL.Image - DEBUG - Importing GifImagePlugin
+2025-08-13 10:51:35,094 - PIL.Image - DEBUG - Importing GribStubImagePlugin
+2025-08-13 10:51:35,095 - PIL.Image - DEBUG - Importing Hdf5StubImagePlugin
+2025-08-13 10:51:35,095 - PIL.Image - DEBUG - Importing IcnsImagePlugin
+2025-08-13 10:51:35,100 - PIL.Image - DEBUG - Importing IcoImagePlugin
+2025-08-13 10:51:35,101 - PIL.Image - DEBUG - Importing ImImagePlugin
+2025-08-13 10:51:35,101 - PIL.Image - DEBUG - Importing ImtImagePlugin
+2025-08-13 10:51:35,102 - PIL.Image - DEBUG - Importing IptcImagePlugin
+2025-08-13 10:51:35,102 - PIL.Image - DEBUG - Importing JpegImagePlugin
+2025-08-13 10:51:35,102 - PIL.Image - DEBUG - Importing Jpeg2KImagePlugin
+2025-08-13 10:51:35,104 - PIL.Image - DEBUG - Importing McIdasImagePlugin
+2025-08-13 10:51:35,105 - PIL.Image - DEBUG - Importing MicImagePlugin
+2025-08-13 10:51:35,113 - PIL.Image - DEBUG - Importing MpegImagePlugin
+2025-08-13 10:51:35,113 - PIL.Image - DEBUG - Importing MpoImagePlugin
+2025-08-13 10:51:35,113 - PIL.Image - DEBUG - Importing MspImagePlugin
+2025-08-13 10:51:35,114 - PIL.Image - DEBUG - Importing PalmImagePlugin
+2025-08-13 10:51:35,114 - PIL.Image - DEBUG - Importing PcdImagePlugin
+2025-08-13 10:51:35,115 - PIL.Image - DEBUG - Importing PcxImagePlugin
+2025-08-13 10:51:35,115 - PIL.Image - DEBUG - Importing PdfImagePlugin
+2025-08-13 10:51:35,120 - PIL.Image - DEBUG - Importing PixarImagePlugin
+2025-08-13 10:51:35,121 - PIL.Image - DEBUG - Importing PngImagePlugin
+2025-08-13 10:51:35,121 - PIL.Image - DEBUG - Importing PpmImagePlugin
+2025-08-13 10:51:35,121 - PIL.Image - DEBUG - Importing PsdImagePlugin
+2025-08-13 10:51:35,121 - PIL.Image - DEBUG - Importing QoiImagePlugin
+2025-08-13 10:51:35,122 - PIL.Image - DEBUG - Importing SgiImagePlugin
+2025-08-13 10:51:35,122 - PIL.Image - DEBUG - Importing SpiderImagePlugin
+2025-08-13 10:51:35,122 - PIL.Image - DEBUG - Importing SunImagePlugin
+2025-08-13 10:51:35,123 - PIL.Image - DEBUG - Importing TgaImagePlugin
+2025-08-13 10:51:35,123 - PIL.Image - DEBUG - Importing TiffImagePlugin
+2025-08-13 10:51:35,123 - PIL.Image - DEBUG - Importing WebPImagePlugin
+2025-08-13 10:51:35,124 - PIL.Image - DEBUG - Importing WmfImagePlugin
+2025-08-13 10:51:35,124 - PIL.Image - DEBUG - Importing XbmImagePlugin
+2025-08-13 10:51:35,125 - PIL.Image - DEBUG - Importing XpmImagePlugin
+2025-08-13 10:51:35,126 - PIL.Image - DEBUG - Importing XVThumbImagePlugin
+2025-08-13 10:52:12,732 - plugins.youtube_dl_button - INFO - ['yt-dlp', '-c', '--max-filesize', '2097152000', '--embed-subs', '-f', '160+bestaudio', '--hls-prefer-ffmpeg', 'https://youtu.be/GZvrGLFYWH0?si=8Q1DJ248kqcIP7Pj', '-o', './DOWNLOADS/6415368038/Narabhakshaka | Werewolf Castle Official Kannada Full Movie | Latest Sandalwood 2023 Action Film_160.mp4', '--no-warnings']
+2025-08-13 10:52:28,372 - plugins.youtube_dl_button - INFO - 
+2025-08-13 10:52:28,373 - plugins.youtube_dl_button - INFO - [youtube] Extracting URL: https://youtu.be/GZvrGLFYWH0?si=8Q1DJ248kqcIP7Pj
+[youtube] GZvrGLFYWH0: Downloading webpage
+[youtube] GZvrGLFYWH0: Downloading tv client config
+[youtube] GZvrGLFYWH0: Downloading tv player API JSON
+[youtube] GZvrGLFYWH0: Downloading ios player API JSON
+[youtube] GZvrGLFYWH0: Downloading m3u8 information
+[info] GZvrGLFYWH0: Downloading 1 format(s): 160+251
+[info] There are no subtitles for the requested languages
+[download] Destination: ./DOWNLOADS/6415368038/Narabhakshaka | Werewolf Castle Official Kannada Full Movie | Latest Sandalwood 2023 Action Film_160.mp4.f160.mp4
+[download] 100% of   23.78MiB in 00:00:05 at 4.46MiB/s     
+[download] Destination: ./DOWNLOADS/6415368038/Narabhakshaka | Werewolf Castle Official Kannada Full Movie | Latest Sandalwood 2023 Action Film_160.mp4.f251.webm
+[download] 100% of   86.77MiB in 00:00:04 at 19.60MiB/s    
+[EmbedSubtitle] There aren't any subtitles to embed
+2025-08-13 10:52:28,373 - pyrogram.dispatcher - ERROR - [Errno 2] No such file or directory: './DOWNLOADS/6415368038/Narabhakshaka | Werewolf Castle Official Kannada Full Movie | Latest Sandalwood 2023 Action Film_160.mkv'
+Traceback (most recent call last):
+  File "/home/runner/workspace/plugins/youtube_dl_button.py", line 184, in youtube_dl_call_back
+    file_size = os.stat(download_directory).st_size
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+FileNotFoundError: [Errno 2] No such file or directory: './DOWNLOADS/6415368038/Narabhakshaka | Werewolf Castle Official Kannada Full Movie | Latest Sandalwood 2023 Action Film_160.mp4'
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/home/runner/workspace/.pythonlibs/lib/python3.12/site-packages/pyrogram/dispatcher.py", line 240, in handler_worker
+    await handler.callback(self.client, *args)
+  File "/home/runner/workspace/plugins/cb_buttons.py", line 124, in button
+    await youtube_dl_call_back(bot, update)
+  File "/home/runner/workspace/plugins/youtube_dl_button.py", line 188, in youtube_dl_call_back
+    file_size = os.stat(download_directory).st_size
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+FileNotFoundError: [Errno 2] No such file or directory: './DOWNLOADS/6415368038/Narabhakshaka | Werewolf Castle Official Kannada Full Movie | Latest Sandalwood 2023 Action Film_160.mkv'
