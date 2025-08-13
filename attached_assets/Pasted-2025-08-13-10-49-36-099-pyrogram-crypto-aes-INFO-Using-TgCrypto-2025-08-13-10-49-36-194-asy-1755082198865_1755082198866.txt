@@ -1,0 +1,58 @@
+2025-08-13 10:49:36,099 - pyrogram.crypto.aes - INFO - Using TgCrypto
+2025-08-13 10:49:36,194 - asyncio - DEBUG - Using selector: EpollSelector
+2025-08-13 10:49:37,452 - plugins.youtube_dl_echo - WARNING - Using alternative bypass method for LK21 compatible sites.
+2025-08-13 10:49:42,321 - plugins.youtube_dl_echo - INFO - {
+    "_": "User",
+    "id": 6415368038,
+    "is_self": false,
+    "is_contact": false,
+    "is_mutual_contact": false,
+    "is_deleted": false,
+    "is_bot": false,
+    "is_verified": false,
+    "is_restricted": false,
+    "is_scam": false,
+    "is_fake": false,
+    "is_support": false,
+    "is_premium": false,
+    "first_name": "Jack",
+    "last_name": "Sparrow 🔥",
+    "status": "UserStatus.RECENTLY",
+    "username": "Pawsismyson",
+    "language_code": "en"
+}
+2025-08-13 10:49:42,321 - filelock - DEBUG - Attempting to acquire lock 140030683507376 on /home/runner/workspace/.cache/python-tldextract/3.12.11.final__vnvdzw4182wb2ifzi0cczhv80yfnpx1q-python3-3.12.11__381681__tldextract-5.3.0/publicsuffix.org-tlds/de84b5ca2167d4c83e38fb162f2e8738.tldextract.json.lock
+2025-08-13 10:49:42,322 - filelock - DEBUG - Lock 140030683507376 acquired on /home/runner/workspace/.cache/python-tldextract/3.12.11.final__vnvdzw4182wb2ifzi0cczhv80yfnpx1q-python3-3.12.11__381681__tldextract-5.3.0/publicsuffix.org-tlds/de84b5ca2167d4c83e38fb162f2e8738.tldextract.json.lock
+2025-08-13 10:49:42,323 - filelock - DEBUG - Attempting to release lock 140030683507376 on /home/runner/workspace/.cache/python-tldextract/3.12.11.final__vnvdzw4182wb2ifzi0cczhv80yfnpx1q-python3-3.12.11__381681__tldextract-5.3.0/publicsuffix.org-tlds/de84b5ca2167d4c83e38fb162f2e8738.tldextract.json.lock
+2025-08-13 10:49:42,323 - filelock - DEBUG - Lock 140030683507376 released on /home/runner/workspace/.cache/python-tldextract/3.12.11.final__vnvdzw4182wb2ifzi0cczhv80yfnpx1q-python3-3.12.11__381681__tldextract-5.3.0/publicsuffix.org-tlds/de84b5ca2167d4c83e38fb162f2e8738.tldextract.json.lock
+2025-08-13 10:49:44,474 - urllib3.connectionpool - DEBUG - Starting new HTTPS connection (1): www.pussyboy.net:443
+2025-08-13 10:49:44,504 - urllib3.connectionpool - DEBUG - https://www.pussyboy.net:443 "GET /thumb/teen-brunette-step-daughter-wants-step-dad-to-help-her-orgasm-taboo-sex-video.jpg HTTP/1.1" 200 16627
+2025-08-13 10:49:46,311 - plugins.youtube_dl_button - INFO - ['yt-dlp', '-c', '--max-filesize', '2097152000', '--embed-subs', '-f', '0', '--hls-prefer-ffmpeg', 'https://www.pussyboy.net/video/6972/teen-brunette-step-daughter-wants-step-dad-to-help-her-orgasm-taboo-sex-video/', '-o', './DOWNLOADS/6415368038/Teen Brunette Step Daughter Wants Step Dad To Help Her Orgasm Taboo Sex Video (1)_0.mp4', '--no-warnings']
+2025-08-13 10:49:48,390 - plugins.youtube_dl_button - INFO - 
+2025-08-13 10:49:48,390 - plugins.youtube_dl_button - INFO - [generic] Extracting URL: https://www.pussyboy.net/video/6972/teen-brunette-step-daughter-wants-step-dad-to-help-her-orgasm-taboo-sex-video/
+[generic] teen-brunette-step-daughter-wants-step-dad-to-help-her-orgasm-taboo-sex-video: Downloading webpage
+[generic] teen-brunette-step-daughter-wants-step-dad-to-help-her-orgasm-taboo-sex-video: Extracting information
+[info] teen-brunette-step-daughter-wants-step-dad-to-help-her-orgasm-taboo-sex-video-1: Downloading 1 format(s): 0
+[info] There are no subtitles for the requested languages
+[download] ./DOWNLOADS/6415368038/Teen Brunette Step Daughter Wants Step Dad To Help Her Orgasm Taboo Sex Video (1)_0.mp4 has already been downloaded
+[download] 100% of   13.80MiB
+[EmbedSubtitle] There aren't any subtitles to embed
+2025-08-13 10:49:48,391 - helper_funcs.help_Nekmo_ffmpeg - WARNING - ffmpeg not available, skipping screenshot generation
+2025-08-13 10:49:48,392 - plugins.youtube_dl_button - WARNING - Could not generate screenshots, proceeding without them
+2025-08-13 10:49:52,278 - pyrogram.dispatcher - ERROR - Invalid parse mode "HTML"
+Traceback (most recent call last):
+  File "/home/runner/workspace/.pythonlibs/lib/python3.12/site-packages/pyrogram/dispatcher.py", line 240, in handler_worker
+    await handler.callback(self.client, *args)
+  File "/home/runner/workspace/plugins/cb_buttons.py", line 124, in button
+    await youtube_dl_call_back(bot, update)
+  File "/home/runner/workspace/plugins/youtube_dl_button.py", line 304, in youtube_dl_call_back
+    await bot.send_video(
+  File "/home/runner/workspace/.pythonlibs/lib/python3.12/site-packages/pyrogram/methods/messages/send_video.py", line 244, in send_video
+    **await utils.parse_text_entities(self, caption, parse_mode, caption_entities)
+      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/workspace/.pythonlibs/lib/python3.12/site-packages/pyrogram/utils.py", line 354, in parse_text_entities
+    text, entities = (await client.parser.parse(text, parse_mode)).values()
+                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/workspace/.pythonlibs/lib/python3.12/site-packages/pyrogram/parser/parser.py", line 54, in parse
+    raise ValueError(f'Invalid parse mode "{mode}"')
+ValueError: Invalid parse mode "HTML"
