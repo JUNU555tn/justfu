@@ -577,8 +577,18 @@ async def echo(bot: Client, update: Message):
                 update.chat.id
             )
             if os.path.exists(thumb_image_path):
-                im = Image.open(thumb_image_path).convert("RGB")
-                im.save(thumb_image_path.replace(".webp", ".jpg"), "jpeg")
+                try:
+                    im = Image.open(thumb_image_path).convert("RGB")
+                    im.save(thumb_image_path.replace(".webp", ".jpg"), "jpeg")
+                    thumb_image_path = thumb_image_path.replace(".webp", ".jpg")
+                except Exception as e:
+                    logger.error(f"Failed to process thumbnail image: {e}")
+                    # Try to remove corrupted file
+                    try:
+                        os.remove(thumb_image_path)
+                    except:
+                        pass
+                    thumb_image_path = None
             else:
                 thumb_image_path = None
             await bot.send_message(
