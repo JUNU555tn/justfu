@@ -427,7 +427,7 @@ async def echo(bot: Client, update: Message):
             )
 
             from plugins.auto_download_detector import enhanced_detector
-from plugins.manual_download_helper import manual_helper
+            from plugins.manual_download_helper import manual_helper
             await bot.send_message(
                 chat_id=update.chat.id,
                 text="🤖 Launching human-like auto-detection and download...",
