@@ -58,9 +58,17 @@ def estimate_file_size_by_quality(height, duration=None):
 try:
     import lk21
     LK21_AVAILABLE = True
+    logger.info("LK21 bypass module loaded successfully.")
 except ImportError:
-    LK21_AVAILABLE = False
-    logger.warning("lk21 module not found or incompatible. LK21 bypass will not be available.")
+    try:
+        # Alternative bypass method
+        import requests
+        from bs4 import BeautifulSoup
+        LK21_AVAILABLE = "alternative"
+        logger.warning("Using alternative bypass method for LK21 compatible sites.")
+    except ImportError:
+        LK21_AVAILABLE = False
+        logger.warning("lk21 module not found or incompatible. LK21 bypass will not be available.")
 
 
 @pyrogram.Client.on_message(pyrogram.filters.regex(pattern=".*http.*"))
@@ -72,19 +80,42 @@ async def echo(bot: Client, update: Message):
         youtube_dl_password = None
         file_name = None
         folder = f'./lk21/{update.from_user.id}/'
-        bypass = ['zippyshare', 'hxfile', 'mediafire', 'anonfiles', 'antfiles']
+        bypass = ['zippyshare', 'hxfile', 'mediafire', 'anonfiles', 'antfiles', 'gofile', 'uploadhaven', 'solidfiles', 'uploaded', 'turbobit']
         ext = tldextract.extract(url)
         if ext.domain in bypass and LK21_AVAILABLE:
-            pablo = await update.reply_text('LK21 link detected')
-            time.sleep(2.5)
+            pablo = await update.reply_text('🔄 Bypass link detected, processing...')
+            time.sleep(1)
             if os.path.isdir(folder):
-                await update.reply_text("Don't spam, wait till your previous task done.")
+                await update.reply_text("⚠️ Don't spam, wait till your previous task is done.")
                 await pablo.delete()
                 return
             os.makedirs(folder)
-            await pablo.edit_text('Downloading...')
-            bypasser = lk21.Bypass()
-            xurl = bypasser.bypass_url(url)
+            await pablo.edit_text('🔍 Bypassing URL...')
+            
+            if LK21_AVAILABLE == True:
+                try:
+                    bypasser = lk21.Bypass()
+                    xurl = bypasser.bypass_url(url)
+                except Exception as e:
+                    logger.error(f"LK21 bypass failed: {e}")
+                    await pablo.edit_text('❌ Bypass failed, trying alternative method...')
+                    # Fall back to direct download
+                    xurl = url
+            elif LK21_AVAILABLE == "alternative":
+                # Alternative bypass method for common file hosts
+                try:
+                    await pablo.edit_text('🔄 Using alternative bypass method...')
+                    headers = {
+                        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+                    }
+                    response = requests.get(url, headers=headers, allow_redirects=True)
+                    xurl = response.url
+                    logger.info(f"Alternative bypass successful: {xurl}")
+                except Exception as e:
+                    logger.error(f"Alternative bypass failed: {e}")
+                    xurl = url
+            else:
+                xurl = url
             if ' | ' in url:
                 url_parts = url.split(' | ')
                 url = url_parts[0]
@@ -96,8 +127,40 @@ async def echo(bot: Client, update: Message):
                 if '+' in file_name:
                     file_name = file_name.replace('+', ' ')
             dldir = f'{folder}{file_name}'
-            r = requests.get(xurl, allow_redirects=True)
-            open(dldir, 'wb').write(r.content)
+            await pablo.edit_text('📥 Starting download...')
+            
+            # Download with progress
+            try:
+                headers = {
+                    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+                }
+                with requests.get(xurl, stream=True, headers=headers, allow_redirects=True) as r:
+                    r.raise_for_status()
+                    total_size = int(r.headers.get('content-length', 0))
+                    downloaded = 0
+                    start_time = time.time()
+                    
+                    with open(dldir, 'wb') as f:
+                        for chunk in r.iter_content(chunk_size=8192):
+                            if chunk:
+                                f.write(chunk)
+                                downloaded += len(chunk)
+                                
+                                # Update progress every 1MB or 10%
+                                if downloaded % (1024*1024) == 0 or (total_size and downloaded % (total_size//10) == 0):
+                                    if total_size:
+                                        progress = (downloaded / total_size) * 100
+                                        speed = downloaded / (time.time() - start_time)
+                                        await pablo.edit_text(
+                                            f'📥 Downloading... {progress:.1f}%\n'
+                                            f'📊 {humanbytes(downloaded)}/{humanbytes(total_size)}\n'
+                                            f'⚡ Speed: {humanbytes(speed)}/s'
+                                        )
+            except Exception as e:
+                logger.error(f"Download failed: {e}")
+                await pablo.edit_text('❌ Download failed, trying direct method...')
+                r = requests.get(xurl, allow_redirects=True)
+                open(dldir, 'wb').write(r.content)
             try:
                 file = filetype.guess(dldir)
                 xfiletype = file.mime
@@ -108,7 +171,7 @@ async def echo(bot: Client, update: Message):
                 if metadata is not None:
                     if metadata.has("duration"):
                         duration = metadata.get('duration').seconds
-            await pablo.edit_text('Uploading...')
+            await pablo.edit_text('📤 Starting upload...')
             start_time = time.time()
             if xfiletype in ['video/mp4', 'video/x-matroska', 'video/webm']:
                 await bot.send_video(
@@ -155,7 +218,7 @@ async def echo(bot: Client, update: Message):
             shutil.rmtree(folder)
             return
         elif ext.domain in bypass and not LK21_AVAILABLE:
-            await update.reply_text('LK21 bypass not available due to Python compatibility issues. Please use direct links.')
+            await update.reply_text('⚠️ Bypass functionality not available. Installing required modules...\n\nPlease try again in a moment.')
             return
         if "|" in url:
             url_parts = url.split("|")
