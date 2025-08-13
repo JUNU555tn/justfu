@@ -29,6 +29,31 @@ from pyrogram.types import InlineKeyboardMarkup, InlineKeyboardButton, Message
 from pyrogram.errors import UserNotParticipant
 from pyrogram import Client, enums
 
+def estimate_file_size_by_quality(height, duration=None):
+    """Estimate file size based on video quality"""
+    if not duration:
+        duration = 600  # Default 10 minutes
+    
+    # Rough estimates in MB per minute for different qualities
+    quality_rates = {
+        2160: 25,    # 4K - ~25MB/min
+        1440: 12,    # 1440p - ~12MB/min  
+        1080: 8,     # 1080p - ~8MB/min
+        720: 4,      # 720p - ~4MB/min
+        480: 2.5,    # 480p - ~2.5MB/min
+        360: 1.5,    # 360p - ~1.5MB/min
+        240: 1       # 240p - ~1MB/min
+    }
+    
+    duration_minutes = duration / 60
+    rate = quality_rates.get(height, 2)
+    estimated_mb = rate * duration_minutes
+    
+    if estimated_mb >= 1024:
+        return f"{estimated_mb/1024:.1f}GB"
+    else:
+        return f"{estimated_mb:.0f}MB"
+
 # Check if LK21 is available due to Python compatibility issues
 try:
     import lk21
@@ -241,9 +266,45 @@ async def echo(bot: Client, update: Message):
                     if format_string is None:
                         format_string = formats.get("format")
                     format_ext = formats.get("ext")
+                    
+                    # Enhanced file size calculation
                     approx_file_size = ""
-                    if "filesize" in formats:
+                    if "filesize" in formats and formats["filesize"]:
                         approx_file_size = humanbytes(formats["filesize"])
+                    elif "filesize_approx" in formats and formats["filesize_approx"]:
+                        approx_file_size = "~" + humanbytes(formats["filesize_approx"])
+                    
+                    # Get resolution info
+                    resolution = ""
+                    if formats.get("height"):
+                        if formats.get("height") >= 2160:
+                            resolution = "4K"
+                        elif formats.get("height") >= 1080:
+                            resolution = "1080p"
+                        elif formats.get("height") >= 720:
+                            resolution = "720p"
+                        elif formats.get("height") >= 480:
+                            resolution = "480p"
+                        elif formats.get("height") >= 360:
+                            resolution = "360p"
+                        else:
+                            resolution = f"{formats.get('height')}p"
+                    
+                    # Enhanced format display with size estimation
+                    if resolution and approx_file_size:
+                        display_quality = f"{resolution} {approx_file_size}"
+                    elif resolution:
+                        # Try to estimate size if not available
+                        if duration and formats.get("height"):
+                            estimated_size = estimate_file_size_by_quality(formats.get("height"), duration)
+                            display_quality = f"{resolution} ~{estimated_size}"
+                        else:
+                            display_quality = resolution
+                    elif format_string:
+                        display_quality = format_string
+                    else:
+                        display_quality = format_ext
+                    
                     cb_string_video = "{}|{}|{}".format(
                         "video", format_id, format_ext)
                     cb_string_file = "{}|{}|{}".format(
@@ -251,11 +312,11 @@ async def echo(bot: Client, update: Message):
                     if format_string is not None and not "audio only" in format_string:
                         ikeyboard = [
                             InlineKeyboardButton(
-                                "S " + format_string + " video " + approx_file_size + " ",
+                                f"📹 {display_quality} Video",
                                 callback_data=(cb_string_video).encode("UTF-8")
                             ),
                             InlineKeyboardButton(
-                                "D " + format_ext + " " + approx_file_size + " ",
+                                f"📁 {display_quality} File",
                                 callback_data=(cb_string_file).encode("UTF-8")
                             )
                         ]

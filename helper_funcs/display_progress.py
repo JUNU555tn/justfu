@@ -31,38 +31,53 @@ async def progress_for_pyrogram(
 ):
     now = time.time()
     diff = now - start
-    if round(diff % 10.00) == 0 or current == total:
-        # if round(current / total * 100, 0) % 5 == 0:
+    if round(diff % 5.00) == 0 or current == total:  # Update every 5 seconds instead of 10
         percentage = current * 100 / total
-        speed = current / diff
+        speed = current / diff if diff > 0 else 0
         elapsed_time = round(diff) * 1000
-        time_to_completion = round((total - current) / speed) * 1000
+        time_to_completion = round((total - current) / speed) * 1000 if speed > 0 else 0
         estimated_total_time = elapsed_time + time_to_completion
 
         elapsed_time = TimeFormatter(milliseconds=elapsed_time)
         estimated_total_time = TimeFormatter(milliseconds=estimated_total_time)
 
-        progress = "[{0}{1}] \nP: {2}%\n".format(
-            ''.join(["♥️" for i in range(math.floor(percentage / 5))]),
-            ''.join(["_" for i in range(20 - math.floor(percentage / 5))]),
-            round(percentage, 2))
+        # Enhanced progress bar with emojis
+        filled = math.floor(percentage / 5)
+        progress_bar = ''.join(['🟢' for i in range(filled)]) + ''.join(['⚪' for i in range(20 - filled)])
 
-        tmp = progress + "{0} of {1}\nSpeed: {2}/s\nETA: {3}\n".format(
-            humanbytes(current),
-            humanbytes(total),
-            humanbytes(speed),
-            # elapsed_time if elapsed_time != '' else "0 s",
-            estimated_total_time if estimated_total_time != '' else "0 s"
-        )
+        # Speed with color indicators
+        speed_text = humanbytes(speed)
+        if speed > 10 * 1024 * 1024:  # >10MB/s
+            speed_emoji = "🚀"
+        elif speed > 1 * 1024 * 1024:  # >1MB/s
+            speed_emoji = "⚡"
+        else:
+            speed_emoji = "🐌"
+
+        progress_text = f"""
+🎯 **{ud_type}**
+
+📊 **Progress:** {round(percentage, 1)}%
+{progress_bar}
+
+📁 **Size:** {humanbytes(current)} / {humanbytes(total)}
+{speed_emoji} **Speed:** {speed_text}/s
+⏱️ **ETA:** {estimated_total_time if estimated_total_time != '' else "0s"}
+⏰ **Elapsed:** {elapsed_time if elapsed_time != '' else "0s"}
+"""
+
         try:
             await message.edit(
-                text="{}\n {}".format(
-                    ud_type,
-                    tmp
-                )
+                text=progress_text,
+                parse_mode="markdown"
             )
-        except:
-            pass
+        except Exception as e:
+            # Fallback to simple text if markdown fails
+            try:
+                simple_text = f"{ud_type}\n\nProgress: {round(percentage, 1)}%\n{humanbytes(current)} / {humanbytes(total)}\nSpeed: {speed_text}/s\nETA: {estimated_total_time if estimated_total_time != '' else '0s'}"
+                await message.edit(text=simple_text)
+            except:
+                pass
 
 
 def humanbytes(size):
