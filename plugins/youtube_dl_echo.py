@@ -144,7 +144,7 @@ async def echo(bot: Client, update: Message):
         folder = f'./lk21/{update.from_user.id}/'
         bypass = ['zippyshare', 'hxfile', 'mediafire', 'anonfiles', 'antfiles', 'gofile', 'uploadhaven', 'solidfiles', 'uploaded', 'turbobit']
         ext = tldextract.extract(url)
-        if ext.domain in bypass and LK21_AVAILABLE:
+        if ext.domain in bypass:
             pablo = await update.reply_text('🔄 Bypass link detected, processing...')
             time.sleep(1)
             if os.path.isdir(folder):
@@ -154,7 +154,7 @@ async def echo(bot: Client, update: Message):
             os.makedirs(folder)
             await pablo.edit_text('🔍 Bypassing URL...')
 
-            if LK21_AVAILABLE == True:
+            if LK21_AVAILABLE:
                 try:
                     bypasser = lk21.Bypass()
                     xurl = bypasser.bypass_url(url)
@@ -163,24 +163,21 @@ async def echo(bot: Client, update: Message):
                     await pablo.edit_text('❌ Bypass failed, trying alternative method...')
                     # Fall back to direct download
                     xurl = url
-            elif LK21_AVAILABLE == "alternative":
-                # Alternative bypass method for common file hosts
+            else:
+                # Use custom bypass method when lk21 is not available
                 try:
                     await pablo.edit_text('🔄 Using alternative bypass method...')
-                    headers = {
-                        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
-                    }
-                    response = requests.get(url, headers=headers, allow_redirects=True)
-                    xurl = response.url
-                    logger.info(f"Alternative bypass successful: {xurl}")
+                    xurl = custom_lk21_bypass(url)
+                    if xurl is None:
+                        # Fall back to simple redirect following
+                        headers = {
+                            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+                        }
+                        response = requests.get(url, headers=headers, allow_redirects=True)
+                        xurl = response.url
+                        logger.info(f"Alternative bypass successful: {xurl}")
                 except Exception as e:
                     logger.error(f"Alternative bypass failed: {e}")
-                    xurl = url
-            else:
-                # Custom bypass if lk21 and alternative fail
-                xurl = custom_lk21_bypass(url)
-                if xurl is None:
-                    logger.warning("Custom bypass failed, falling back to direct link.")
                     xurl = url
 
             if ' | ' in url:
@@ -284,9 +281,7 @@ async def echo(bot: Client, update: Message):
             await pablo.delete()
             shutil.rmtree(folder)
             return
-        elif ext.domain in bypass and not LK21_AVAILABLE:
-            await update.reply_text('⚠️ Bypass functionality not available. Please install `lk21` and `requests`.\n\n`pip install lk21 requests`')
-            return
+        
         if "|" in url:
             url_parts = url.split("|")
             if len(url_parts) == 2:
