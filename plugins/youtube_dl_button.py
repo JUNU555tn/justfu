@@ -284,32 +284,92 @@ async def youtube_dl_call_back(bot, update):
                 if metadata is not None:
                     if metadata.has("duration"):
                         duration = metadata.get('duration').seconds
-            # get the correct width, height, and duration for videos greater than 10MB
+            # Enhanced thumbnail handling with automatic extraction
+            if not os.path.exists(thumb_image_path):
+                # Try to extract thumbnail from the downloaded video
+                try:
+                    await bot.edit_message_text(
+                        text="📸 Extracting thumbnail from video...",
+                        chat_id=update.message.chat.id,
+                        message_id=update.message.id
+                    )
+                    
+                    # Extract thumbnail from video using ffmpeg
+                    video_thumb_path = Config.DOWNLOAD_LOCATION + "/" + str(update.from_user.id) + "_video_thumb.jpg"
+                    
+                    # Try to use ffmpeg to extract a frame
+                    import subprocess
+                    try:
+                        ffmpeg_command = [
+                            "ffmpeg", "-i", download_directory,
+                            "-ss", "00:00:01", "-vframes", "1",
+                            "-q:v", "2", video_thumb_path, "-y"
+                        ]
+                        
+                        result = subprocess.run(ffmpeg_command, 
+                                              capture_output=True, 
+                                              timeout=30)
+                        
+                        if result.returncode == 0 and os.path.exists(video_thumb_path):
+                            thumb_image_path = video_thumb_path
+                            logger.info("Successfully extracted thumbnail from video")
+                        else:
+                            logger.warning("ffmpeg thumbnail extraction failed")
+                    
+                    except subprocess.TimeoutExpired:
+                        logger.warning("ffmpeg thumbnail extraction timed out")
+                    except FileNotFoundError:
+                        logger.warning("ffmpeg not available for thumbnail extraction")
+                    except Exception as ffmpeg_error:
+                        logger.error(f"ffmpeg error: {ffmpeg_error}")
+                
+                except Exception as extract_error:
+                    logger.error(f"Thumbnail extraction failed: {extract_error}")
+            
+            # Process existing thumbnail
             if os.path.exists(thumb_image_path):
-                width = 0
-                height = 0
-                metadata = extractMetadata(createParser(thumb_image_path))
-                if metadata.has("width"):
-                    width = metadata.get("width")
-                if metadata.has("height"):
-                    height = metadata.get("height")
-                if tg_send_type == "vm":
-                    height = width
-                # resize image
-                # ref: https://t.me/PyrogramChat/44663
-                # https://stackoverflow.com/a/21669827/4723940
-                Image.open(thumb_image_path).convert(
-                    "RGB").save(thumb_image_path)
-                img = Image.open(thumb_image_path)
-                # https://stackoverflow.com/a/37631799/4723940
-                # img.thumbnail((90, 90))
-                if tg_send_type == "file":
-                    img.resize((320, height))
-                else:
-                    img.resize((90, height))
-                img.save(thumb_image_path, "JPEG")
-                # https://pillow.readthedocs.io/en/3.1.x/reference/Image.html#create-thumbnails
-
+                try:
+                    width = 0
+                    height = 0
+                    
+                    # Get thumbnail metadata
+                    metadata = extractMetadata(createParser(thumb_image_path))
+                    if metadata and metadata.has("width"):
+                        width = metadata.get("width")
+                    if metadata and metadata.has("height"):
+                        height = metadata.get("height")
+                    if tg_send_type == "vm":
+                        height = width
+                    
+                    # Process and resize thumbnail
+                    img = Image.open(thumb_image_path)
+                    
+                    # Convert to RGB if needed
+                    if img.mode in ('RGBA', 'LA', 'P'):
+                        background = Image.new('RGB', img.size, (255, 255, 255))
+                        if img.mode == 'P':
+                            img = img.convert('RGBA')
+                        background.paste(img, mask=img.split()[-1] if img.mode == 'RGBA' else None)
+                        img = background
+                    elif img.mode != 'RGB':
+                        img = img.convert('RGB')
+                    
+                    # Resize based on type
+                    if tg_send_type == "file":
+                        img.thumbnail((320, 240), Image.Resampling.LANCZOS)
+                    else:
+                        img.thumbnail((90, 90), Image.Resampling.LANCZOS)
+                    
+                    img.save(thumb_image_path, "JPEG", quality=85)
+                    
+                except Exception as thumb_error:
+                    logger.error(f"Thumbnail processing error: {thumb_error}")
+                    # Remove corrupted thumbnail
+                    try:
+                        os.remove(thumb_image_path)
+                        thumb_image_path = None
+                    except:
+                        pass
             else:
                 thumb_image_path = None
             start_time = time.time()

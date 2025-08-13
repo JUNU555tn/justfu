@@ -566,31 +566,112 @@ async def echo(bot: Client, update: Message):
                 if response_json["thumbnail"] is not None:
                     thumbnail = response_json["thumbnail"]
                     thumbnail_image = response_json["thumbnail"]
-            thumb_image_path = DownLoadFile(
-                thumbnail_image,
-                Config.DOWNLOAD_LOCATION + "/" +
-                str(update.from_user.id) + ".webp",
-                Config.CHUNK_SIZE,
-                None,  # bot,
-                Translation.DOWNLOAD_START,
-                update.id,
-                update.chat.id
-            )
-            if os.path.exists(thumb_image_path):
+            # Enhanced thumbnail handling with multiple fallbacks
+            thumb_image_path = None
+            
+            # Try to download and process the original thumbnail
+            if thumbnail_image:
                 try:
-                    im = Image.open(thumb_image_path).convert("RGB")
-                    im.save(thumb_image_path.replace(".webp", ".jpg"), "jpeg")
-                    thumb_image_path = thumb_image_path.replace(".webp", ".jpg")
-                except Exception as e:
-                    logger.error(f"Failed to process thumbnail image: {e}")
-                    # Try to remove corrupted file
-                    try:
-                        os.remove(thumb_image_path)
-                    except:
-                        pass
-                    thumb_image_path = None
-            else:
-                thumb_image_path = None
+                    await send_live_log(bot, update.chat.id, "📸 Downloading video thumbnail...")
+                    
+                    # Try different image formats
+                    for ext in ['.jpg', '.jpeg', '.png', '.webp']:
+                        temp_thumb_path = Config.DOWNLOAD_LOCATION + "/" + str(update.from_user.id) + ext
+                        
+                        try:
+                            downloaded_thumb = DownLoadFile(
+                                thumbnail_image,
+                                temp_thumb_path,
+                                Config.CHUNK_SIZE,
+                                None,
+                                Translation.DOWNLOAD_START,
+                                update.id,
+                                update.chat.id
+                            )
+                            
+                            if os.path.exists(downloaded_thumb):
+                                # Try to process the image
+                                try:
+                                    im = Image.open(downloaded_thumb)
+                                    # Convert to RGB and save as JPEG
+                                    final_thumb_path = Config.DOWNLOAD_LOCATION + "/" + str(update.from_user.id) + ".jpg"
+                                    if im.mode in ('RGBA', 'LA', 'P'):
+                                        # Convert to RGB for formats with transparency
+                                        background = Image.new('RGB', im.size, (255, 255, 255))
+                                        if im.mode == 'P':
+                                            im = im.convert('RGBA')
+                                        background.paste(im, mask=im.split()[-1] if im.mode == 'RGBA' else None)
+                                        im = background
+                                    elif im.mode != 'RGB':
+                                        im = im.convert('RGB')
+                                    
+                                    # Resize thumbnail to appropriate size
+                                    im.thumbnail((320, 240), Image.Resampling.LANCZOS)
+                                    im.save(final_thumb_path, "JPEG", quality=85)
+                                    thumb_image_path = final_thumb_path
+                                    await send_live_log(bot, update.chat.id, "✅ Thumbnail processed successfully")
+                                    break
+                                    
+                                except Exception as img_error:
+                                    logger.error(f"Failed to process thumbnail {ext}: {img_error}")
+                                    try:
+                                        os.remove(downloaded_thumb)
+                                    except:
+                                        pass
+                                    continue
+                            
+                        except Exception as download_error:
+                            logger.error(f"Failed to download thumbnail {ext}: {download_error}")
+                            continue
+                    
+                    # If all thumbnail processing failed, try direct URL approach
+                    if not thumb_image_path:
+                        try:
+                            await send_live_log(bot, update.chat.id, "🔄 Trying alternative thumbnail method...")
+                            
+                            headers = {
+                                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+                            }
+                            response = requests.get(thumbnail_image, headers=headers, timeout=10)
+                            
+                            if response.status_code == 200:
+                                final_thumb_path = Config.DOWNLOAD_LOCATION + "/" + str(update.from_user.id) + ".jpg"
+                                
+                                # Try to process the image data directly
+                                try:
+                                    from io import BytesIO
+                                    im = Image.open(BytesIO(response.content))
+                                    if im.mode in ('RGBA', 'LA', 'P'):
+                                        background = Image.new('RGB', im.size, (255, 255, 255))
+                                        if im.mode == 'P':
+                                            im = im.convert('RGBA')
+                                        background.paste(im, mask=im.split()[-1] if im.mode == 'RGBA' else None)
+                                        im = background
+                                    elif im.mode != 'RGB':
+                                        im = im.convert('RGB')
+                                    
+                                    im.thumbnail((320, 240), Image.Resampling.LANCZOS)
+                                    im.save(final_thumb_path, "JPEG", quality=85)
+                                    thumb_image_path = final_thumb_path
+                                    await send_live_log(bot, update.chat.id, "✅ Alternative thumbnail method successful")
+                                    
+                                except Exception as direct_error:
+                                    logger.error(f"Direct thumbnail processing failed: {direct_error}")
+                                    
+                        except Exception as alt_error:
+                            logger.error(f"Alternative thumbnail method failed: {alt_error}")
+                
+                except Exception as main_error:
+                    logger.error(f"Main thumbnail processing failed: {main_error}")
+            
+            # Final fallback - check for user's custom thumbnail
+            if not thumb_image_path:
+                custom_thumb = Config.DOWNLOAD_LOCATION + "/" + str(update.from_user.id) + ".jpg"
+                if os.path.exists(custom_thumb):
+                    thumb_image_path = custom_thumb
+                    await send_live_log(bot, update.chat.id, "📎 Using custom thumbnail")
+                else:
+                    await send_live_log(bot, update.chat.id, "⚠️ No thumbnail available, proceeding without one")
             await bot.send_message(
                 chat_id=update.chat.id,
                 text=Translation.FORMAT_SELECTION.format(thumbnail) + "\n" + Translation.SET_CUSTOM_USERNAME_PASSWORD,
