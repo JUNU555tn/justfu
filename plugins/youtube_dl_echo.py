@@ -7,7 +7,7 @@ import logging
 logging.basicConfig(level=logging.DEBUG,
                     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
-import urllib.parse, filetype, shutil, time, tldextract, asyncio, json, math, os, requests
+import urllib.parse, filetype, shutil, time, tldextract, asyncio, json, math, os, requests, re
 from PIL import Image
 # the secret configuration specific things
 if bool(os.environ.get("WEBHOOK", False)):
@@ -132,6 +132,14 @@ def custom_lk21_bypass(url):
         logger.error(f"Error in custom LK21 bypass: {str(e)}")
         return None
 
+
+async def send_live_log(bot: Client, chat_id: int, message: str):
+    """Send live log updates"""
+    try:
+        await bot.send_message(chat_id=chat_id, text=f"📊 {message}")
+        logger.info(f"Live log: {message}")
+    except Exception as e:
+        logger.error(f"Failed to send live log: {e}")
 
 @pyrogram.Client.on_message(pyrogram.filters.regex(pattern=".*http.*"))
 async def echo(bot: Client, update: Message):
@@ -361,6 +369,39 @@ async def echo(bot: Client, update: Message):
             error_message = e_response.replace("please report this issue on https://yt-dl.org/bug . Make sure you are using the latest version; see  https://yt-dl.org/update  on how to update. Be sure to call youtube-dl with the --verbose flag and include its complete output.", "")
             if "This video is only available for registered users." in error_message:
                 error_message += Translation.SET_CUSTOM_USERNAME_PASSWORD
+            
+            await send_live_log(bot, update.chat.id, "❌ yt-dlp failed, trying enhanced detection...")
+            
+            # Try enhanced detection as fallback
+            try:
+                from plugins.auto_download_detector import enhanced_detector
+                await send_live_log(bot, update.chat.id, "🔄 Launching enhanced auto-detection...")
+                
+                video_urls = await enhanced_detector.comprehensive_video_detection(
+                    url, bot, update.chat.id
+                )
+                
+                if video_urls:
+                    await send_live_log(bot, update.chat.id, f"✅ Enhanced detection found {len(video_urls)} URLs!")
+                    
+                    response = "🎯 **Enhanced Detection Results:**\n\n"
+                    for i, video_url in enumerate(video_urls, 1):
+                        response += f"🎥 **{i}.** `{video_url}`\n\n"
+                    response += "💡 **Tip:** Click on any URL to download it!"
+                    
+                    await bot.send_message(
+                        chat_id=update.chat.id,
+                        text=response,
+                        reply_to_message_id=update.id,
+                        parse_mode=enums.ParseMode.MARKDOWN
+                    )
+                    return True
+                else:
+                    await send_live_log(bot, update.chat.id, "😔 Enhanced detection also failed")
+            except Exception as enhanced_error:
+                await send_live_log(bot, update.chat.id, f"❌ Enhanced detection error: {str(enhanced_error)}")
+                logger.error(f"Enhanced detection failed: {enhanced_error}")
+            
             await bot.send_message(
                 chat_id=update.chat.id,
                 text=Translation.NO_VOID_FORMAT_FOUND.format(str(error_message)),
@@ -373,7 +414,7 @@ async def echo(bot: Client, update: Message):
             # logger.info(t_response)
             x_reponse = t_response
             if "\n" in x_reponse:
-                x_reponse, _ = x_reponse.split("\n")
+                x_reponse = x_reponse.split("\n")[0]  # Take only the first line
             response_json = json.loads(x_reponse)
             save_ytdl_json_path = Config.DOWNLOAD_LOCATION + \
                 "/" + str(update.from_user.id) + ".json"

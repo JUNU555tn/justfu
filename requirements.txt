@@ -8,9 +8,8 @@ requests
 tgcrypto
 yt-dlp
 olefile
-
-filetype
-tldextract
+selenium
+webdriver-manager
 Flask
 gunicorn==20.1.0
 Jinja2
