@@ -372,18 +372,17 @@ async def echo(bot: Client, update: Message):
 
             await send_live_log(bot, update.chat.id, "❌ yt-dlp failed, trying enhanced detection...")
 
-            # Try enhanced auto-detection with human-like clicking as fallback
             await bot.send_message(
                 chat_id=update.chat.id,
                 text="❌ yt-dlp failed, trying enhanced detection with human-like clicking...",
-                reply_to_message_id=update.message_id
+                reply_to_message_id=update.id
             )
 
             from plugins.auto_download_detector import enhanced_detector
             await bot.send_message(
                 chat_id=update.chat.id,
                 text="🤖 Launching human-like auto-detection and download...",
-                reply_to_message_id=update.message_id
+                reply_to_message_id=update.id
             )
 
             try:
@@ -395,7 +394,7 @@ async def echo(bot: Client, update: Message):
                     await bot.send_message(
                         chat_id=update.chat.id,
                         text=f"✅ Enhanced detection found {len(detected_urls)} URLs with human-like clicking!",
-                        reply_to_message_id=update.message_id
+                        reply_to_message_id=update.id
                     )
 
                     # Try each detected URL with yt-dlp until one works
@@ -407,7 +406,7 @@ async def echo(bot: Client, update: Message):
                         await bot.send_message(
                             chat_id=update.chat.id,
                             text=f"🔄 Attempting download {i}/{len(detected_urls)}: Human-clicked URL",
-                            reply_to_message_id=update.message_id
+                            reply_to_message_id=update.id
                         )
 
                         download_directory = Config.DOWNLOAD_LOCATION + "/" + str(update.from_user.id)
@@ -442,7 +441,7 @@ async def echo(bot: Client, update: Message):
                                 await bot.send_message(
                                     chat_id=update.chat.id,
                                     text=f"✅ Human-like download successful! Processing file...",
-                                    reply_to_message_id=update.message_id
+                                    reply_to_message_id=update.id
                                 )
                                 download_successful = True
                                 break
@@ -464,7 +463,7 @@ async def echo(bot: Client, update: Message):
                         await bot.edit_message_text(
                             text=response,
                             chat_id=update.chat.id,
-                            message_id=update.message_id, # Corrected to update.message_id
+                            message_id=update.id,
                             disable_web_page_preview=True
                         )
                         return
@@ -472,7 +471,7 @@ async def echo(bot: Client, update: Message):
                     await bot.send_message(
                         chat_id=update.chat.id,
                         text="😔 Human-like detection found no downloadable video URLs",
-                        reply_to_message_id=update.message_id
+                        reply_to_message_id=update.id
                     )
                     return
 
@@ -481,7 +480,7 @@ async def echo(bot: Client, update: Message):
                 await bot.send_message(
                     chat_id=update.chat.id,
                     text=f"❌ Human-like detection failed: {str(detection_error)}",
-                    reply_to_message_id=update.message_id
+                    reply_to_message_id=update.id
                 )
                 return
 
