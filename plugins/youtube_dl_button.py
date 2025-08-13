@@ -29,6 +29,7 @@ import pyrogram
 logging.getLogger("pyrogram").setLevel(logging.WARNING)
 
 from pyrogram.types import InputMediaPhoto
+from pyrogram import enums
 from helper_funcs.display_progress import progress_for_pyrogram, humanbytes
 from hachoir.metadata import extractMetadata
 from hachoir.parser import createParser
@@ -255,7 +256,7 @@ async def youtube_dl_call_back(bot, update):
                     chat_id=update.message.chat.id,
                     audio=download_directory,
                     caption=description,
-                    parse_mode="HTML",
+                    parse_mode=enums.ParseMode.HTML,
                     duration=duration,
                     # performer=response_json["uploader"],
                     # title=response_json["title"],
@@ -275,7 +276,7 @@ async def youtube_dl_call_back(bot, update):
                     document=download_directory,
                     thumb=thumb_image_path,
                     caption=description,
-                    parse_mode="HTML",
+                    parse_mode=enums.ParseMode.HTML,
                     # reply_markup=reply_markup,
                     reply_to_message_id=update.message.reply_to_message.id,
                     progress=progress_for_pyrogram,
@@ -305,7 +306,7 @@ async def youtube_dl_call_back(bot, update):
                     chat_id=update.message.chat.id,
                     video=download_directory,
                     caption=description,
-                    parse_mode="HTML",
+                    parse_mode=enums.ParseMode.HTML,
                     duration=duration,
                     width=width,
                     height=height,
@@ -338,7 +339,7 @@ async def youtube_dl_call_back(bot, update):
                                 InputMediaPhoto(
                                     media=image,
                                     caption=caption,
-                                    parse_mode="html"
+                                    parse_mode=enums.ParseMode.HTML
                                 )
                             )
                         else:
