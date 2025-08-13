@@ -285,7 +285,16 @@ class EnhancedDownloadDetector:
             ".premium-download",
             ".free-download",
             "a[href*='dl.php']",
-            "a[href*='download.php']"
+            "a[href*='download.php']",
+            # New tab opening patterns
+            "a[target='_blank']",
+            "button[onclick*='window.open']",
+            "a[onclick*='window.open']",
+            # Play button patterns that might lead to download
+            ".play-btn",
+            ".play-button",
+            "button[class*='play']",
+            "a[class*='play']"
         ]
         
         found_buttons = []
@@ -531,10 +540,34 @@ class EnhancedDownloadDetector:
                             for window in current_windows:
                                 if window != original_window:
                                     driver.switch_to.window(window)
+                                    time.sleep(3)  # Wait for page to load
                                     new_url = driver.current_url
+                                    
+                                    # Check if it's a direct video URL
                                     if any(ext in new_url.lower() for ext in ['.mp4', '.mkv', '.webm', '.m4v', '.avi']):
                                         successful_downloads.append(new_url)
-                                        await self.send_live_log(bot, chat_id, f"✅ Download URL in new window: {new_url}")
+                                        await self.send_live_log(bot, chat_id, f"✅ Direct video URL in new window: {new_url}")
+                                    else:
+                                        # Look for video elements or download links in the new tab
+                                        try:
+                                            video_elements = driver.find_elements(By.TAG_NAME, 'video')
+                                            for video in video_elements:
+                                                video_src = video.get_attribute('src')
+                                                if video_src and video_src.startswith('http'):
+                                                    successful_downloads.append(video_src)
+                                                    await self.send_live_log(bot, chat_id, f"✅ Video element in new tab: {video_src}")
+                                            
+                                            # Look for download buttons in new tab
+                                            new_tab_downloads = driver.find_elements(By.CSS_SELECTOR, 
+                                                'a[href*=".mp4"], a[href*=".mkv"], a[href*=".webm"], a[href*="download"]')
+                                            for link in new_tab_downloads:
+                                                link_href = link.get_attribute('href')
+                                                if link_href:
+                                                    successful_downloads.append(link_href)
+                                                    await self.send_live_log(bot, chat_id, f"✅ Download link in new tab: {link_href}")
+                                        except Exception as new_tab_error:
+                                            logger.debug(f"New tab analysis failed: {new_tab_error}")
+                                    
                                     driver.close()
                             driver.switch_to.window(original_window)
                         

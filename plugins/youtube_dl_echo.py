@@ -146,6 +146,54 @@ async def echo(bot: Client, update: Message):
     if update.from_user.id in Config.AUTH_USERS:
         logger.info(update.from_user)
         url = update.text
+        
+        # Check if this is a manual download request
+        if url.lower().startswith('manual:'):
+            manual_url = url[7:].strip()  # Remove 'manual:' prefix
+            await bot.send_message(
+                chat_id=update.chat.id,
+                text="🤖 **Manual Download Mode Activated**\n\nProcessing the URL you copied from the new tab...",
+                reply_to_message_id=update.id
+            )
+            
+            try:
+                filepath = await manual_helper.download_from_new_tab_url(
+                    manual_url, bot, update.chat.id, update.from_user.id
+                )
+                
+                if filepath and os.path.exists(filepath):
+                    await bot.send_message(
+                        chat_id=update.chat.id,
+                        text="📤 **Uploading downloaded file to Telegram...**",
+                        reply_to_message_id=update.id
+                    )
+                    
+                    # Upload the file
+                    await bot.send_video(
+                        chat_id=update.chat.id,
+                        video=filepath,
+                        caption="✅ **Manual Download Complete!**\n\nDownloaded from new tab URL",
+                        reply_to_message_id=update.id
+                    )
+                    
+                    # Clean up
+                    try:
+                        os.remove(filepath)
+                    except:
+                        pass
+                else:
+                    await bot.send_message(
+                        chat_id=update.chat.id,
+                        text="❌ Manual download failed. Please check the URL and try again.",
+                        reply_to_message_id=update.id
+                    )
+            except Exception as manual_error:
+                await bot.send_message(
+                    chat_id=update.chat.id,
+                    text=f"❌ Manual download error: {str(manual_error)}",
+                    reply_to_message_id=update.id
+                )
+            return
         youtube_dl_username = None
         youtube_dl_password = None
         file_name = None
@@ -379,6 +427,7 @@ async def echo(bot: Client, update: Message):
             )
 
             from plugins.auto_download_detector import enhanced_detector
+from plugins.manual_download_helper import manual_helper
             await bot.send_message(
                 chat_id=update.chat.id,
                 text="🤖 Launching human-like auto-detection and download...",
@@ -403,14 +452,19 @@ async def echo(bot: Client, update: Message):
                     for i, detected_url in enumerate(detected_urls, 1):
                         logger.info(f"Trying detected URL {i}/{len(detected_urls)} with yt-dlp: {detected_url}")
 
-                        await bot.send_message(
+                        status_msg = await bot.send_message(
                             chat_id=update.chat.id,
                             text=f"🔄 Attempting download {i}/{len(detected_urls)}: Human-clicked URL",
                             reply_to_message_id=update.id
                         )
 
-                        download_directory = Config.DOWNLOAD_LOCATION + "/" + str(update.from_user.id)
-                        os.makedirs(download_directory, exist_ok=True)
+                        # Create user-specific download directory with proper filename
+                        user_download_dir = Config.DOWNLOAD_LOCATION + "/" + str(update.from_user.id)
+                        os.makedirs(user_download_dir, exist_ok=True)
+                        
+                        # Generate a unique filename for this download
+                        filename = f"video_{int(time.time())}_%(title)s.%(ext)s"
+                        download_path = os.path.join(user_download_dir, filename)
 
                         command_to_exec = [
                             "yt-dlp",
@@ -419,7 +473,7 @@ async def echo(bot: Client, update: Message):
                             "--no-check-certificate",
                             "--user-agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
                             detected_url,
-                            "-o", download_directory
+                            "-o", download_path
                         ]
 
                         if Config.HTTP_PROXY != "":
@@ -438,11 +492,15 @@ async def echo(bot: Client, update: Message):
                             if process.returncode == 0:
                                 # Success with detected URL
                                 logger.info(f"Human-clicked download successful with URL {i}")
-                                await bot.send_message(
-                                    chat_id=update.chat.id,
-                                    text=f"✅ Human-like download successful! Processing file...",
-                                    reply_to_message_id=update.id
-                                )
+                                try:
+                                    await status_msg.edit_text(f"✅ Human-like download successful! Processing file...")
+                                except Exception as edit_error:
+                                    # If edit fails, send new message
+                                    await bot.send_message(
+                                        chat_id=update.chat.id,
+                                        text=f"✅ Human-like download successful! Processing file...",
+                                        reply_to_message_id=update.id
+                                    )
                                 download_successful = True
                                 break
                             else:
@@ -454,16 +512,22 @@ async def echo(bot: Client, update: Message):
 
                     if not download_successful:
                         # All detected URLs failed, show them for manual use
-                        response = "❌ **All download methods failed**\n\n"
-                        response += "🤖 **Human clicked and found these URLs:**\n\n"
+                        response = "❌ **All automatic download methods failed**\n\n"
+                        response += "🤖 **Bot found these URLs but couldn't download them:**\n\n"
                         for i, detected_url in enumerate(detected_urls, 1):
                             response += f"🎥 **{i}.** `{detected_url}`\n\n"
-                        response += "💡 **Tip:** Try copying one of these URLs and send it directly to the bot"
+                        response += "📋 **Manual Instructions:**\n"
+                        response += "1. Click the original video link\n"
+                        response += "2. When the download button opens a new tab\n"
+                        response += "3. Copy the URL from that new tab\n"
+                        response += "4. Send that URL to this bot with prefix `manual:`\n"
+                        response += "   Example: `manual: https://site.com/video.mp4`\n\n"
+                        response += "💡 **Alternative:** Try one of the detected URLs above directly"
 
-                        await bot.edit_message_text(
-                            text=response,
+                        await bot.send_message(
                             chat_id=update.chat.id,
-                            message_id=update.id,
+                            text=response,
+                            reply_to_message_id=update.id,
                             disable_web_page_preview=True
                         )
                         return
