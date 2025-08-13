@@ -17,6 +17,9 @@ import pyrogram
 from pyrogram import Client
 from pyrogram.types import Message
 from config import Config
+from bs4 import BeautifulSoup
+import subprocess
+import os
 
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
@@ -28,7 +31,19 @@ class EnhancedDownloadDetector:
         self.chrome_options.add_argument('--no-sandbox')
         self.chrome_options.add_argument('--disable-dev-shm-usage')
         self.chrome_options.add_argument('--disable-gpu')
+        self.chrome_options.add_argument('--disable-features=VizDisplayCompositor')
+        self.chrome_options.add_argument('--disable-extensions')
+        self.chrome_options.add_argument('--disable-plugins')
+        self.chrome_options.add_argument('--disable-images')
+        self.chrome_options.add_argument('--disable-javascript')
+        self.chrome_options.add_argument('--disable-web-security')
+        self.chrome_options.add_argument('--allow-running-insecure-content')
+        self.chrome_options.add_argument('--ignore-certificate-errors')
+        self.chrome_options.add_argument('--ignore-ssl-errors')
+        self.chrome_options.add_argument('--ignore-certificate-errors-spki-list')
         self.chrome_options.add_argument('--user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36')
+        # Set chrome binary path explicitly
+        self.chrome_options.binary_location = '/usr/bin/google-chrome-stable'
         
     async def send_live_log(self, bot: Client, chat_id: int, message: str):
         """Send live log updates to the bot"""
@@ -41,12 +56,204 @@ class EnhancedDownloadDetector:
     def setup_driver(self):
         """Setup Chrome driver with enhanced options"""
         try:
+            # Try to install Chrome first
+            self.install_chrome()
             driver = webdriver.Chrome(options=self.chrome_options)
             driver.set_page_load_timeout(30)
             return driver
         except Exception as e:
             logger.error(f"Failed to setup driver: {e}")
             return None
+    
+    def install_chrome(self):
+        """Install Chrome if not available"""
+        try:
+            # Check if Chrome is already installed
+            result = subprocess.run(['which', 'google-chrome-stable'], capture_output=True)
+            if result.returncode != 0:
+                logger.info("Installing Google Chrome...")
+                # Install Chrome
+                commands = [
+                    'wget -q -O - https://dl.google.com/linux/linux_signing_key.pub | apt-key add -',
+                    'echo "deb [arch=amd64] http://dl.google.com/linux/chrome/deb/ stable main" > /etc/apt/sources.list.d/google-chrome.list',
+                    'apt-get update -qq',
+                    'apt-get install -y google-chrome-stable'
+                ]
+                for cmd in commands:
+                    subprocess.run(cmd, shell=True, check=True)
+        except Exception as e:
+            logger.error(f"Failed to install Chrome: {e}")
+
+    async def fallback_direct_analysis(self, url: str, bot: Client, chat_id: int):
+        """Fallback method using direct HTTP requests and BeautifulSoup"""
+        await self.send_live_log(bot, chat_id, "🔄 Using fallback direct analysis method...")
+        
+        try:
+            headers = {
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
+                'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
+                'Accept-Language': 'en-US,en;q=0.5',
+                'Accept-Encoding': 'gzip, deflate',
+                'DNT': '1',
+                'Connection': 'keep-alive',
+                'Upgrade-Insecure-Requests': '1',
+                'Referer': url
+            }
+            
+            # Get the page content
+            response = requests.get(url, headers=headers, timeout=30)
+            response.raise_for_status()
+            
+            soup = BeautifulSoup(response.content, 'html.parser')
+            found_urls = []
+            
+            await self.send_live_log(bot, chat_id, "🔍 Analyzing page content...")
+            
+            # Look for download buttons and links
+            download_selectors = [
+                'a[href*="download"]',
+                'button[onclick*="download"]',
+                'a[href*=".mp4"]',
+                'a[href*=".mkv"]',
+                'a[href*=".webm"]',
+                'a[href*=".avi"]',
+                'a[href*=".m4v"]',
+                'a[class*="download"]',
+                'button[class*="download"]',
+                '.download-btn',
+                '.download-link',
+                '#download',
+                '[data-download]'
+            ]
+            
+            for selector in download_selectors:
+                elements = soup.select(selector)
+                for element in elements:
+                    href = element.get('href') or element.get('onclick', '')
+                    if href:
+                        # Clean up onclick handlers
+                        if 'onclick' in str(element):
+                            onclick = element.get('onclick', '')
+                            url_match = re.search(r'["\']([^"\']*(?:\.mp4|\.mkv|\.webm|\.avi|\.m4v)[^"\']*)["\']', onclick)
+                            if url_match:
+                                href = url_match.group(1)
+                        
+                        if href.startswith('http') and any(ext in href.lower() for ext in ['.mp4', '.mkv', '.webm', '.avi', '.m4v']):
+                            found_urls.append(href)
+                            await self.send_live_log(bot, chat_id, f"📍 Found download link: {href[:60]}...")
+            
+            # Look for video sources in script tags
+            scripts = soup.find_all('script')
+            for script in scripts:
+                if script.string:
+                    content = script.string
+                    # Common video URL patterns
+                    patterns = [
+                        r'file\s*[:=]\s*["\']([^"\']+\.(?:mp4|mkv|webm|avi|m4v)[^"\']*)["\']',
+                        r'src\s*[:=]\s*["\']([^"\']+\.(?:mp4|mkv|webm|avi|m4v)[^"\']*)["\']',
+                        r'video\s*[:=]\s*["\']([^"\']+\.(?:mp4|mkv|webm|avi|m4v)[^"\']*)["\']',
+                        r'url\s*[:=]\s*["\']([^"\']+\.(?:mp4|mkv|webm|avi|m4v)[^"\']*)["\']',
+                        r'https?://[^\s"\'<>]+\.(?:mp4|mkv|webm|avi|m4v)(?:\?[^\s"\'<>]*)?'
+                    ]
+                    
+                    for pattern in patterns:
+                        matches = re.findall(pattern, content, re.IGNORECASE)
+                        for match in matches:
+                            if isinstance(match, tuple):
+                                match = match[0]
+                            if match.startswith('http'):
+                                found_urls.append(match)
+                                await self.send_live_log(bot, chat_id, f"🎥 Found video in script: {match[:60]}...")
+            
+            # Look for video elements
+            video_elements = soup.find_all(['video', 'source'])
+            for element in video_elements:
+                src = element.get('src') or element.get('data-src')
+                if src and src.startswith('http'):
+                    found_urls.append(src)
+                    await self.send_live_log(bot, chat_id, f"📹 Found video element: {src[:60]}...")
+            
+            # Look for iframe sources
+            iframes = soup.find_all('iframe')
+            for iframe in iframes:
+                src = iframe.get('src')
+                if src:
+                    try:
+                        # Recursively check iframe content
+                        iframe_response = requests.get(src, headers=headers, timeout=15)
+                        iframe_soup = BeautifulSoup(iframe_response.content, 'html.parser')
+                        iframe_videos = iframe_soup.find_all(['video', 'source'])
+                        for video in iframe_videos:
+                            video_src = video.get('src') or video.get('data-src')
+                            if video_src and video_src.startswith('http'):
+                                found_urls.append(video_src)
+                                await self.send_live_log(bot, chat_id, f"🖼️ Found iframe video: {video_src[:60]}...")
+                    except Exception as e:
+                        logger.debug(f"Failed to analyze iframe {src}: {e}")
+            
+            # Remove duplicates
+            unique_urls = list(set(found_urls))
+            
+            if unique_urls:
+                await self.send_live_log(bot, chat_id, f"✅ Fallback method found {len(unique_urls)} URLs!")
+            else:
+                await self.send_live_log(bot, chat_id, "😔 No video URLs found with fallback method")
+            
+            return unique_urls
+            
+        except Exception as e:
+            logger.error(f"Fallback analysis failed: {e}")
+            await self.send_live_log(bot, chat_id, f"❌ Fallback analysis failed: {str(e)}")
+            return []
+
+    async def try_direct_download_patterns(self, url: str, bot: Client, chat_id: int):
+        """Try common direct download URL patterns"""
+        await self.send_live_log(bot, chat_id, "🔄 Trying direct download patterns...")
+        
+        try:
+            base_url = url.rstrip('/')
+            domain = urlparse(url).netloc
+            
+            # Common download URL patterns
+            patterns = [
+                f"{base_url}/download",
+                f"{base_url}/dl",
+                f"{base_url}/get",
+                f"{base_url}.mp4",
+                f"{base_url}.mkv",
+                f"{base_url}.webm",
+                f"{base_url}/video.mp4",
+                f"{base_url}/stream.mp4",
+                base_url.replace('/video/', '/download/'),
+                base_url.replace('/watch/', '/download/'),
+                base_url.replace('/view/', '/download/'),
+                base_url.replace('http://', 'https://').replace('/video/', '/stream/'),
+            ]
+            
+            headers = {
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+                'Referer': url
+            }
+            
+            found_urls = []
+            
+            for pattern in patterns:
+                try:
+                    response = requests.head(pattern, headers=headers, timeout=10, allow_redirects=True)
+                    content_type = response.headers.get('content-type', '').lower()
+                    
+                    if response.status_code == 200 and ('video' in content_type or any(ext in pattern.lower() for ext in ['.mp4', '.mkv', '.webm', '.avi'])):
+                        found_urls.append(pattern)
+                        await self.send_live_log(bot, chat_id, f"✅ Direct pattern found: {pattern[:60]}...")
+                        
+                except Exception as e:
+                    logger.debug(f"Pattern {pattern} failed: {e}")
+            
+            return found_urls
+            
+        except Exception as e:
+            logger.error(f"Direct pattern matching failed: {e}")
+            return []
 
     async def search_download_buttons(self, driver, bot: Client, chat_id: int):
         """Search for download buttons with multiple strategies"""
@@ -290,59 +497,66 @@ class EnhancedDownloadDetector:
         """Main method combining all detection strategies"""
         await self.send_live_log(bot, chat_id, f"🚀 Starting comprehensive detection for: {url[:50]}...")
         
-        driver = self.setup_driver()
-        if not driver:
-            await self.send_live_log(bot, chat_id, "❌ Failed to setup browser driver")
-            return []
-        
         all_video_urls = []
         
-        try:
-            await self.send_live_log(bot, chat_id, "🌐 Loading page...")
-            driver.get(url)
-            time.sleep(5)
-            
-            # Strategy 1: Search for download buttons
-            download_buttons = await self.search_download_buttons(driver, bot, chat_id)
-            if download_buttons:
-                auto_downloads = await self.try_auto_download(driver, download_buttons, bot, chat_id)
-                all_video_urls.extend(auto_downloads)
-            
-            # Strategy 2: Extract from network monitoring
-            network_urls = await self.extract_video_urls_from_network(driver, bot, chat_id)
-            all_video_urls.extend(network_urls)
-            
-            # Strategy 3: Play video and capture URL
-            video_urls = await self.play_video_and_capture_url(driver, bot, chat_id)
-            all_video_urls.extend(video_urls)
-            
-            # Strategy 4: Page source analysis
-            source_urls = await self.extract_from_page_source(driver, bot, chat_id)
-            all_video_urls.extend(source_urls)
-            
-            # Remove duplicates and filter valid URLs
-            unique_urls = list(set(all_video_urls))
-            valid_urls = [url for url in unique_urls if url and url.startswith('http')]
-            
-            if valid_urls:
-                await self.send_live_log(bot, chat_id, f"🎉 Found {len(valid_urls)} video URLs!")
-                for i, video_url in enumerate(valid_urls, 1):
-                    await self.send_live_log(bot, chat_id, f"🎥 {i}. {video_url[:80]}...")
-            else:
-                await self.send_live_log(bot, chat_id, "😔 No video URLs found with any method")
-            
-            return valid_urls
-            
-        except Exception as e:
-            logger.error(f"Comprehensive detection failed: {e}")
-            await self.send_live_log(bot, chat_id, f"❌ Detection failed: {str(e)}")
-            return []
+        # Strategy 1: Try direct download patterns first (fastest)
+        direct_urls = await self.try_direct_download_patterns(url, bot, chat_id)
+        all_video_urls.extend(direct_urls)
         
-        finally:
+        # Strategy 2: Use fallback direct analysis (reliable)
+        fallback_urls = await self.fallback_direct_analysis(url, bot, chat_id)
+        all_video_urls.extend(fallback_urls)
+        
+        # Strategy 3: Try selenium if available
+        driver = self.setup_driver()
+        if driver:
             try:
-                driver.quit()
-            except:
-                pass
+                await self.send_live_log(bot, chat_id, "🌐 Loading page with browser...")
+                driver.get(url)
+                time.sleep(5)
+                
+                # Search for download buttons
+                download_buttons = await self.search_download_buttons(driver, bot, chat_id)
+                if download_buttons:
+                    auto_downloads = await self.try_auto_download(driver, download_buttons, bot, chat_id)
+                    all_video_urls.extend(auto_downloads)
+                
+                # Extract from network monitoring
+                network_urls = await self.extract_video_urls_from_network(driver, bot, chat_id)
+                all_video_urls.extend(network_urls)
+                
+                # Play video and capture URL
+                video_urls = await self.play_video_and_capture_url(driver, bot, chat_id)
+                all_video_urls.extend(video_urls)
+                
+                # Page source analysis
+                source_urls = await self.extract_from_page_source(driver, bot, chat_id)
+                all_video_urls.extend(source_urls)
+                
+            except Exception as e:
+                logger.error(f"Selenium detection failed: {e}")
+                await self.send_live_log(bot, chat_id, f"⚠️ Browser method failed: {str(e)}")
+            
+            finally:
+                try:
+                    driver.quit()
+                except:
+                    pass
+        else:
+            await self.send_live_log(bot, chat_id, "⚠️ Browser unavailable, using fallback methods only")
+        
+        # Remove duplicates and filter valid URLs
+        unique_urls = list(set(all_video_urls))
+        valid_urls = [url for url in unique_urls if url and url.startswith('http')]
+        
+        if valid_urls:
+            await self.send_live_log(bot, chat_id, f"🎉 Found {len(valid_urls)} video URLs!")
+            for i, video_url in enumerate(valid_urls, 1):
+                await self.send_live_log(bot, chat_id, f"🎥 {i}. {video_url[:80]}...")
+        else:
+            await self.send_live_log(bot, chat_id, "😔 No video URLs found with any method")
+        
+        return valid_urls
 
 # Initialize the detector
 enhanced_detector = EnhancedDownloadDetector()

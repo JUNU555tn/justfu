@@ -9,6 +9,7 @@ tgcrypto
 yt-dlp
 olefile
 selenium
+beautifulsoup4
 webdriver-manager
 Flask
 gunicorn==20.1.0
