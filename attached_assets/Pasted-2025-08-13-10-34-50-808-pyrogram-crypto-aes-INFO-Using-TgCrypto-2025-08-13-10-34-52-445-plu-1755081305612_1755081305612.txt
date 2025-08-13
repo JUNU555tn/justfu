@@ -1,0 +1,38 @@
+2025-08-13 10:34:50,808 - pyrogram.crypto.aes - INFO - Using TgCrypto
+2025-08-13 10:34:52,445 - plugins.youtube_dl_echo - WARNING - lk21 module not found or incompatible. LK21 bypass will not be available.
+2025-08-13 10:35:03,203 - plugins.youtube_dl_echo - INFO - {
+    "_": "User",
+    "id": 6415368038,
+    "is_self": false,
+    "is_contact": false,
+    "is_mutual_contact": false,
+    "is_deleted": false,
+    "is_bot": false,
+    "is_verified": false,
+    "is_restricted": false,
+    "is_scam": false,
+    "is_fake": false,
+    "is_support": false,
+    "is_premium": false,
+    "first_name": "Jack",
+    "last_name": "Sparrow 🔥",
+    "status": "UserStatus.RECENTLY",
+    "username": "Pawsismyson",
+    "language_code": "en"
+}
+2025-08-13 10:35:03,204 - filelock - DEBUG - Attempting to acquire lock 140602669660736 on /home/runner/workspace/.cache/python-tldextract/3.12.11.final__vnvdzw4182wb2ifzi0cczhv80yfnpx1q-python3-3.12.11__381681__tldextract-5.3.0/publicsuffix.org-tlds/de84b5ca2167d4c83e38fb162f2e8738.tldextract.json.lock
+2025-08-13 10:35:03,204 - filelock - DEBUG - Lock 140602669660736 acquired on /home/runner/workspace/.cache/python-tldextract/3.12.11.final__vnvdzw4182wb2ifzi0cczhv80yfnpx1q-python3-3.12.11__381681__tldextract-5.3.0/publicsuffix.org-tlds/de84b5ca2167d4c83e38fb162f2e8738.tldextract.json.lock
+2025-08-13 10:35:03,205 - filelock - DEBUG - Attempting to release lock 140602669660736 on /home/runner/workspace/.cache/python-tldextract/3.12.11.final__vnvdzw4182wb2ifzi0cczhv80yfnpx1q-python3-3.12.11__381681__tldextract-5.3.0/publicsuffix.org-tlds/de84b5ca2167d4c83e38fb162f2e8738.tldextract.json.lock
+2025-08-13 10:35:03,205 - filelock - DEBUG - Lock 140602669660736 released on /home/runner/workspace/.cache/python-tldextract/3.12.11.final__vnvdzw4182wb2ifzi0cczhv80yfnpx1q-python3-3.12.11__381681__tldextract-5.3.0/publicsuffix.org-tlds/de84b5ca2167d4c83e38fb162f2e8738.tldextract.json.lock
+2025-08-13 10:35:04,916 - urllib3.connectionpool - DEBUG - Starting new HTTPS connection (1): www.pussyboy.net:443
+2025-08-13 10:35:04,939 - urllib3.connectionpool - DEBUG - https://www.pussyboy.net:443 "GET /thumb/teen-brunette-step-daughter-wants-step-dad-to-help-her-orgasm-taboo-sex-video.jpg HTTP/1.1" 200 16627
+2025-08-13 10:35:06,784 - pyrogram.dispatcher - ERROR - 'User' object is not subscriptable
+Traceback (most recent call last):
+  File "/home/runner/workspace/.pythonlibs/lib/python3.12/site-packages/pyrogram/dispatcher.py", line 240, in handler_worker
+    await handler.callback(self.client, *args)
+  File "/home/runner/workspace/plugins/cb_buttons.py", line 124, in button
+    await youtube_dl_call_back(bot, update)
+  File "/home/runner/workspace/plugins/youtube_dl_button.py", line 106, in youtube_dl_call_back
+    mention = user["mention"]
+              ~~~~^^^^^^^^^^^
+TypeError: 'User' object is not subscriptable
