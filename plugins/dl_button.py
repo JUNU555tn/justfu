@@ -1,3 +1,4 @@
+
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 # (c) Shrimadhav U K
@@ -15,7 +16,15 @@ import math
 import os
 import shutil
 import time
+import requests
 from datetime import datetime
+from selenium import webdriver
+from selenium.webdriver.chrome.options import Options
+from selenium.webdriver.common.by import By
+from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.support import expected_conditions as EC
+from selenium.webdriver.common.action_chains import ActionChains
+from selenium.common.exceptions import TimeoutException, NoSuchElementException
 
 # the secret configuration specific things
 if bool(os.environ.get("WEBHOOK", False)):
@@ -35,6 +44,251 @@ from hachoir.parser import createParser
 # https://stackoverflow.com/a/37631799/4723940
 from PIL import Image
 
+class AutoDownloadHandler:
+    def __init__(self):
+        self.chrome_options = Options()
+        self.chrome_options.add_argument('--headless')
+        self.chrome_options.add_argument('--no-sandbox')
+        self.chrome_options.add_argument('--disable-dev-shm-usage')
+        self.chrome_options.add_argument('--disable-gpu')
+        self.chrome_options.add_argument('--disable-features=VizDisplayCompositor')
+        self.chrome_options.add_argument('--disable-extensions')
+        self.chrome_options.add_argument('--disable-plugins')
+        self.chrome_options.add_argument('--disable-images')
+        self.chrome_options.add_argument('--disable-web-security')
+        self.chrome_options.add_argument('--allow-running-insecure-content')
+        self.chrome_options.add_argument('--ignore-certificate-errors')
+        self.chrome_options.add_argument('--ignore-ssl-errors')
+        self.chrome_options.add_argument('--ignore-certificate-errors-spki-list')
+        self.chrome_options.add_argument('--user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36')
+
+    def setup_driver(self):
+        """Setup Chrome driver with enhanced options"""
+        try:
+            driver = webdriver.Chrome(options=self.chrome_options)
+            driver.set_page_load_timeout(30)
+            return driver
+        except Exception as e:
+            logger.error(f"Failed to setup driver: {e}")
+            return None
+
+    async def send_live_log(self, bot, chat_id, message):
+        """Send live log updates"""
+        try:
+            await bot.send_message(chat_id=chat_id, text=f"🔄 {message}")
+            logger.info(f"Live log: {message}")
+        except Exception as e:
+            logger.error(f"Failed to send live log: {e}")
+
+    async def auto_click_download_with_redirects(self, url, bot, chat_id, message_id):
+        """Auto-click download buttons and handle redirects to get final download URL"""
+        driver = self.setup_driver()
+        if not driver:
+            await self.send_live_log(bot, chat_id, "❌ Browser unavailable for auto-clicking")
+            return None
+
+        try:
+            await self.send_live_log(bot, chat_id, f"🌐 Loading page: {url[:50]}...")
+            driver.get(url)
+            time.sleep(3)
+
+            # Look for download buttons
+            download_selectors = [
+                "a[href*='download']",
+                "button[class*='download']",
+                "a[class*='download']",
+                ".download-btn",
+                ".download-link",
+                "#download",
+                "button[onclick*='download']",
+                "a[onclick*='download']",
+                ".btn-download",
+                "[data-download]",
+                "a[title*='download' i]",
+                "button[title*='download' i]"
+            ]
+
+            download_button = None
+            for selector in download_selectors:
+                try:
+                    elements = driver.find_elements(By.CSS_SELECTOR, selector)
+                    for element in elements:
+                        if element.is_displayed() and element.is_enabled():
+                            text = element.text.lower()
+                            if any(keyword in text for keyword in ['download', 'dl', 'get']):
+                                download_button = element
+                                await self.send_live_log(bot, chat_id, f"📍 Found download button: {text}")
+                                break
+                    if download_button:
+                        break
+                except Exception as e:
+                    logger.debug(f"Selector {selector} failed: {e}")
+
+            if not download_button:
+                await self.send_live_log(bot, chat_id, "❌ No download button found")
+                return None
+
+            # Click the download button
+            await self.send_live_log(bot, chat_id, "👆 Auto-clicking download button...")
+            
+            original_window = driver.current_window_handle
+            original_url = driver.current_url
+
+            try:
+                # Try different click methods
+                try:
+                    driver.execute_script("arguments[0].scrollIntoView({behavior: 'smooth', block: 'center'});", download_button)
+                    time.sleep(1)
+                    download_button.click()
+                except:
+                    try:
+                        ActionChains(driver).move_to_element(download_button).click().perform()
+                    except:
+                        driver.execute_script("arguments[0].click();", download_button)
+
+                time.sleep(3)  # Wait for response
+
+                # Check for new windows/tabs
+                all_windows = driver.window_handles
+                if len(all_windows) > 1:
+                    await self.send_live_log(bot, chat_id, "🔄 New tab opened, checking for download...")
+                    
+                    for window in all_windows:
+                        if window != original_window:
+                            driver.switch_to.window(window)
+                            time.sleep(2)
+                            
+                            new_url = driver.current_url
+                            await self.send_live_log(bot, chat_id, f"🔗 Checking new tab: {new_url[:50]}...")
+                            
+                            # Check if it's a direct download URL
+                            if any(ext in new_url.lower() for ext in ['.mp4', '.mkv', '.webm', '.avi', '.m4v']):
+                                await self.send_live_log(bot, chat_id, "✅ Found direct download URL in new tab!")
+                                return new_url
+                            
+                            # Look for more download links in the new tab
+                            final_url = await self.extract_download_url_from_page(driver, bot, chat_id)
+                            if final_url:
+                                return final_url
+                            
+                            driver.close()
+                    
+                    driver.switch_to.window(original_window)
+
+                # Check if current page changed to download URL
+                current_url = driver.current_url
+                if current_url != original_url:
+                    await self.send_live_log(bot, chat_id, f"🔄 Page redirected: {current_url[:50]}...")
+                    
+                    if any(ext in current_url.lower() for ext in ['.mp4', '.mkv', '.webm', '.avi', '.m4v']):
+                        await self.send_live_log(bot, chat_id, "✅ Found direct download URL after redirect!")
+                        return current_url
+                    
+                    # Look for download links on redirected page
+                    final_url = await self.extract_download_url_from_page(driver, bot, chat_id)
+                    if final_url:
+                        return final_url
+
+                # Look for download links that appeared after clicking
+                await self.send_live_log(bot, chat_id, "🔍 Searching for download links on current page...")
+                final_url = await self.extract_download_url_from_page(driver, bot, chat_id)
+                if final_url:
+                    return final_url
+
+                await self.send_live_log(bot, chat_id, "❌ No download URL found after clicking")
+                return None
+
+            except Exception as click_error:
+                logger.error(f"Click error: {click_error}")
+                await self.send_live_log(bot, chat_id, f"❌ Click failed: {str(click_error)}")
+                return None
+
+        except Exception as e:
+            logger.error(f"Auto-click error: {e}")
+            await self.send_live_log(bot, chat_id, f"❌ Auto-click failed: {str(e)}")
+            return None
+
+        finally:
+            try:
+                driver.quit()
+            except:
+                pass
+
+    async def extract_download_url_from_page(self, driver, bot, chat_id):
+        """Extract download URLs from current page using developer tools and DOM analysis"""
+        try:
+            # Enable network monitoring
+            try:
+                driver.execute_cdp_cmd('Network.enable', {})
+                await self.send_live_log(bot, chat_id, "🌐 Monitoring network requests...")
+            except:
+                pass
+
+            # Look for direct video links
+            video_selectors = [
+                'a[href*=".mp4"]',
+                'a[href*=".mkv"]', 
+                'a[href*=".webm"]',
+                'a[href*=".avi"]',
+                'a[href*=".m4v"]',
+                'video source',
+                'video',
+                '[data-src*=".mp4"]',
+                '[data-video*=".mp4"]'
+            ]
+
+            for selector in video_selectors:
+                try:
+                    elements = driver.find_elements(By.CSS_SELECTOR, selector)
+                    for element in elements:
+                        href = element.get_attribute('href') or element.get_attribute('src') or element.get_attribute('data-src')
+                        if href and any(ext in href.lower() for ext in ['.mp4', '.mkv', '.webm', '.avi', '.m4v']):
+                            await self.send_live_log(bot, chat_id, f"🎥 Found video URL: {href[:60]}...")
+                            return href
+                except Exception as e:
+                    logger.debug(f"Selector {selector} failed: {e}")
+
+            # Analyze page source for video URLs
+            page_source = driver.page_source
+            import re
+            
+            video_patterns = [
+                r'(?:src|href|url)[\s]*[=:][\s]*["\']([^"\']*\.(?:mp4|mkv|webm|m4v|avi)[^"\']*)["\']',
+                r'file[\s]*:[\s]*["\']([^"\']*\.(?:mp4|mkv|webm|m4v|avi)[^"\']*)["\']',
+                r'video[\s]*:[\s]*["\']([^"\']*\.(?:mp4|mkv|webm|m4v|avi)[^"\']*)["\']',
+                r'https?://[^\s"\'<>]+\.(?:mp4|mkv|webm|m4v|avi)(?:\?[^\s"\'<>]*)?'
+            ]
+
+            for pattern in video_patterns:
+                matches = re.findall(pattern, page_source, re.IGNORECASE)
+                for match in matches:
+                    if isinstance(match, tuple):
+                        match = match[0]
+                    if match.startswith('http') and any(ext in match.lower() for ext in ['.mp4', '.mkv', '.webm', '.m4v', '.avi']):
+                        await self.send_live_log(bot, chat_id, f"🔗 Found video in source: {match[:60]}...")
+                        return match
+
+            # Try to get network logs
+            try:
+                logs = driver.get_log('performance')
+                for log in logs:
+                    message = json.loads(log['message'])
+                    if message['message']['method'] == 'Network.responseReceived':
+                        url = message['message']['params']['response']['url']
+                        if any(ext in url.lower() for ext in ['.mp4', '.mkv', '.webm', '.m4v', '.avi']):
+                            await self.send_live_log(bot, chat_id, f"🌐 Found video in network: {url[:60]}...")
+                            return url
+            except Exception as network_error:
+                logger.debug(f"Network log analysis failed: {network_error}")
+
+            return None
+
+        except Exception as e:
+            logger.error(f"URL extraction failed: {e}")
+            return None
+
+# Initialize auto download handler
+auto_download_handler = AutoDownloadHandler()
 
 async def ddl_call_back(bot, update):
     logger.info(update)
@@ -45,6 +299,7 @@ async def ddl_call_back(bot, update):
         "/" + str(update.from_user.id) + ".jpg"
     youtube_dl_url = update.message.reply_to_message.text
     custom_file_name = os.path.basename(youtube_dl_url)
+    
     if "|" in youtube_dl_url:
         url_parts = youtube_dl_url.split("|")
         if len(url_parts) == 2:
@@ -62,7 +317,6 @@ async def ddl_call_back(bot, update):
             youtube_dl_url = youtube_dl_url.strip()
         if custom_file_name is not None:
             custom_file_name = custom_file_name.strip()
-        # https://stackoverflow.com/a/761825/4723940
         logger.info(youtube_dl_url)
         logger.info(custom_file_name)
     else:
@@ -73,20 +327,50 @@ async def ddl_call_back(bot, update):
                 o = entity.offset
                 l = entity.length
                 youtube_dl_url = youtube_dl_url[o:o + l]
+
     user = await bot.get_me()
     mention = user["mention"]
     description = Translation.CUSTOM_CAPTION_UL_FILE.format(mention)
     start = datetime.now()
+    
     await bot.edit_message_text(
-        text=Translation.DOWNLOAD_START,
+        text="🤖 **Smart Download Starting...**\n\nTrying auto-click download button method...",
         chat_id=update.message.chat.id,
         message_id=update.message.message_id
     )
+
+    # Try auto-clicking download button first
+    try:
+        auto_download_url = await auto_download_handler.auto_click_download_with_redirects(
+            youtube_dl_url, bot, update.message.chat.id, update.message.message_id
+        )
+        
+        if auto_download_url:
+            await bot.edit_message_text(
+                text="✅ **Auto-click successful!** Starting download...",
+                chat_id=update.message.chat.id,
+                message_id=update.message.message_id
+            )
+            youtube_dl_url = auto_download_url  # Use the auto-clicked URL
+        else:
+            await bot.edit_message_text(
+                text="⚠️ **Auto-click failed.** Trying direct download...",
+                chat_id=update.message.chat.id,
+                message_id=update.message.message_id
+            )
+    except Exception as auto_error:
+        logger.error(f"Auto-click error: {auto_error}")
+        await bot.edit_message_text(
+            text=f"❌ **Auto-click failed:** {str(auto_error)[:50]}...\n\nTrying direct download...",
+            chat_id=update.message.chat.id,
+            message_id=update.message.message_id
+        )
+
     tmp_directory_for_each_user = Config.DOWNLOAD_LOCATION + "/" + str(update.from_user.id)
     if not os.path.isdir(tmp_directory_for_each_user):
         os.makedirs(tmp_directory_for_each_user)
     download_directory = tmp_directory_for_each_user + "/" + custom_file_name
-    command_to_exec = []
+    
     async with aiohttp.ClientSession() as session:
         c_time = time.time()
         try:
@@ -106,6 +390,7 @@ async def ddl_call_back(bot, update):
                 message_id=update.message.message_id
             )
             return False
+    
     if os.path.exists(download_directory):
         end_one = datetime.now()
         await bot.edit_message_text(
@@ -118,8 +403,8 @@ async def ddl_call_back(bot, update):
             file_size = os.stat(download_directory).st_size
         except FileNotFoundError as exc:
             download_directory = os.path.splitext(download_directory)[0] + "." + "mkv"
-            # https://stackoverflow.com/a/678242/4723940
             file_size = os.stat(download_directory).st_size
+        
         if file_size > Config.TG_MAX_FILE_SIZE:
             await bot.edit_message_text(
                 chat_id=update.message.chat.id,
@@ -128,7 +413,6 @@ async def ddl_call_back(bot, update):
             )
         else:
             # get the correct width, height, and duration for videos greater than 10MB
-            # ref: message from @BotSupport
             width = 0
             height = 0
             duration = 0
@@ -137,6 +421,7 @@ async def ddl_call_back(bot, update):
                 if metadata is not None:
                     if metadata.has("duration"):
                         duration = metadata.get('duration').seconds
+            
             # get the correct width, height, and duration for videos greater than 10MB
             if os.path.exists(thumb_image_path):
                 width = 0
@@ -148,35 +433,26 @@ async def ddl_call_back(bot, update):
                     height = metadata.get("height")
                 if tg_send_type == "vm":
                     height = width
-                # resize image
-                # ref: https://t.me/PyrogramChat/44663
-                # https://stackoverflow.com/a/21669827/4723940
-                Image.open(thumb_image_path).convert(
-                    "RGB").save(thumb_image_path)
+                
+                Image.open(thumb_image_path).convert("RGB").save(thumb_image_path)
                 img = Image.open(thumb_image_path)
-                # https://stackoverflow.com/a/37631799/4723940
-                # img.thumbnail((90, 90))
                 if tg_send_type == "file":
                     img.resize((320, height))
                 else:
                     img.resize((90, height))
                 img.save(thumb_image_path, "JPEG")
-                # https://pillow.readthedocs.io/en/3.1.x/reference/Image.html#create-thumbnails
             else:
                 thumb_image_path = None
+            
             start_time = time.time()
+            
             # try to upload file
             if tg_send_type == "audio":
-                user = await bot.get_me()
-                mention = user["mention"]
                 audio = await bot.send_audio(
                     chat_id=update.message.chat.id,
                     audio=download_directory,
                     caption=description + f"\n\nSubmitted by {update.from_user.mention}\nUploaded by {mention}",
                     duration=duration,
-                    # performer=response_json["uploader"],
-                    # title=response_json["title"],
-                    # reply_markup=reply_markup,
                     thumb=thumb_image_path,
                     reply_to_message_id=update.message.reply_to_message.message_id,
                     progress=progress_for_pyrogram,
@@ -188,14 +464,11 @@ async def ddl_call_back(bot, update):
                 )
                 await audio.forward(Config.LOG_CHANNEL)
             elif tg_send_type == "file":
-                user = await bot.get_me()
-                mention = user["mention"]
                 document = await bot.send_document(
                     chat_id=update.message.chat.id,
                     document=download_directory,
                     thumb=thumb_image_path,
                     caption=description + f"\n\nSubmitted by {update.from_user.mention}\nUploaded by {mention}",
-                    # reply_markup=reply_markup,
                     reply_to_message_id=update.message.reply_to_message.message_id,
                     progress=progress_for_pyrogram,
                     progress_args=(
@@ -206,8 +479,6 @@ async def ddl_call_back(bot, update):
                 )
                 await document.forward(Config.LOG_CHANNEL)
             elif tg_send_type == "vm":
-                user = await bot.get_me()
-                mention = user["mention"]
                 video_note = await bot.send_video_note(
                     chat_id=update.message.chat.id,
                     video_note=download_directory,
@@ -225,8 +496,6 @@ async def ddl_call_back(bot, update):
                 vm = await video_note.forward(Config.LOG_CHANNEL)
                 await vm.reply_text(f"Submitted by {update.from_user.mention}\nUploaded by {mention}")
             elif tg_send_type == "video":
-                user = await bot.get_me()
-                mention = user["mention"]
                 video = await bot.send_video(
                     chat_id=update.message.chat.id,
                     video=download_directory,
@@ -235,7 +504,6 @@ async def ddl_call_back(bot, update):
                     width=width,
                     height=height,
                     supports_streaming=True,
-                    # reply_markup=reply_markup,
                     thumb=thumb_image_path,
                     reply_to_message_id=update.message.reply_to_message.message_id,
                     progress=progress_for_pyrogram,
@@ -248,12 +516,14 @@ async def ddl_call_back(bot, update):
                 await video.forward(Config.LOG_CHANNEL)
             else:
                 logger.info("Did this happen? :\\")
+            
             end_two = datetime.now()
             try:
                 os.remove(download_directory)
                 os.remove(thumb_image_path)
             except:
                 pass
+            
             time_taken_for_download = (end_one - start).seconds
             time_taken_for_upload = (end_two - end_one).seconds
             await bot.edit_message_text(
@@ -264,28 +534,42 @@ async def ddl_call_back(bot, update):
             )
     else:
         await bot.edit_message_text(
-            text=Translation.NO_VOID_FORMAT_FOUND.format("Incorrect Link"),
+            text=Translation.NO_VOID_FORMAT_FOUND.format("Download failed - could not auto-click or direct download"),
             chat_id=update.message.chat.id,
             message_id=update.message.message_id,
             disable_web_page_preview=True
         )
 
-
 async def download_coroutine(bot, session, url, file_name, chat_id, message_id, start):
     downloaded = 0
     display_message = ""
-    async with session.get(url, timeout=Config.PROCESS_MAX_TIMEOUT) as response:
-        total_length = int(response.headers["Content-Length"])
-        content_type = response.headers["Content-Type"]
+    
+    # Add headers for better compatibility
+    headers = {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
+        'Accept': 'video/mp4,video/*,*/*;q=0.9',
+        'Accept-Language': 'en-US,en;q=0.5',
+        'Accept-Encoding': 'gzip, deflate',
+        'DNT': '1',
+        'Connection': 'keep-alive',
+        'Referer': url
+    }
+    
+    async with session.get(url, timeout=Config.PROCESS_MAX_TIMEOUT, headers=headers) as response:
+        total_length = int(response.headers.get("Content-Length", 0))
+        content_type = response.headers.get("Content-Type", "")
+        
         if "text" in content_type and total_length < 500:
             return await response.release()
+        
         await bot.edit_message_text(
             chat_id,
             message_id,
-            text="""Preparing your request...
-⚡️ 𝗨𝗥𝗟: <a href='{}'>❝ 𝐋𝐚𝐳𝐲 𝐔𝐫𝐥 ❞</a>
+            text="""🚀 **Smart Auto-Download Active**
+⚡️ 𝗨𝗥𝗟: <a href='{}'>❝ 𝐀𝐮𝐭𝐨-𝐂𝐥𝐢𝐜𝐤 𝐔𝐫𝐥 ❞</a>
 🎲 𝗙𝗶𝗹𝗲 𝗦𝗶𝘇𝗲: {}""".format(url, humanbytes(total_length))
         )
+        
         with open(file_name, "wb") as f_handle:
             while True:
                 chunk = await response.content.read(Config.CHUNK_SIZE)
@@ -303,8 +587,8 @@ async def download_coroutine(bot, session, url, file_name, chat_id, message_id, 
                         (total_length - downloaded) / speed) * 1000
                     estimated_total_time = elapsed_time + time_to_completion
                     try:
-                        current_message = """\n\n** ⭑┗━┫⦀⦙ Download Status ⦙⦀┣━┛⭑**
-⚡️ 𝗨𝗥𝗟: <a href='{}'>❝ 𝐋𝐚𝐳𝐲 𝐔𝐫𝐥 ❞</a>
+                        current_message = """\n\n**🤖 ⭑┗━┫⦀⦙ Auto-Click Download ⦙⦀┣━┛⭑**
+⚡️ 𝗨𝗥𝗟: <a href='{}'>❝ 𝐀𝐮𝐭𝐨-𝐂𝐥𝐢𝐜𝐤 𝐔𝐫𝐥 ❞</a>
 🎲 𝗙𝗶𝗹𝗲 𝗦𝗶𝘇𝗲: {}
 ⏳ 𝗗𝗼𝘄𝗻𝗹𝗼𝗮𝗱𝗲𝗱: {}
 🧭 ЄTА: {}""".format(
