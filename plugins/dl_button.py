@@ -92,7 +92,7 @@ class AutoDownloadHandler:
             driver.get(url)
             time.sleep(3)
 
-            # Look for download buttons
+            # Look for download buttons with expanded selectors
             download_selectors = [
                 "a[href*='download']",
                 "button[class*='download']",
@@ -105,7 +105,11 @@ class AutoDownloadHandler:
                 ".btn-download",
                 "[data-download]",
                 "a[title*='download' i]",
-                "button[title*='download' i]"
+                "button[title*='download' i]",
+                "a[href*='get_file']",  # Added for sites like desitales2
+                "a[href*='cdn.']",      # Added for CDN links
+                "button[id*='download']",
+                "input[type='button'][value*='download' i]"
             ]
 
             download_button = None
@@ -115,9 +119,15 @@ class AutoDownloadHandler:
                     for element in elements:
                         if element.is_displayed() and element.is_enabled():
                             text = element.text.lower()
-                            if any(keyword in text for keyword in ['download', 'dl', 'get']):
+                            href = element.get_attribute('href') or ''
+                            onclick = element.get_attribute('onclick') or ''
+                            
+                            # Check for download indicators
+                            if (any(keyword in text for keyword in ['download', 'dl', 'get', 'save']) or
+                                'download' in href.lower() or 'get_file' in href.lower() or 
+                                'cdn.' in href.lower() or 'download' in onclick.lower()):
                                 download_button = element
-                                await self.send_live_log(bot, chat_id, f"📍 Found download button: {text}")
+                                await self.send_live_log(bot, chat_id, f"📍 Found download button: {text or href[:30]}...")
                                 break
                     if download_button:
                         break
@@ -133,6 +143,7 @@ class AutoDownloadHandler:
             
             original_window = driver.current_window_handle
             original_url = driver.current_url
+            all_original_windows = set(driver.window_handles)
 
             try:
                 # Try different click methods
@@ -146,34 +157,46 @@ class AutoDownloadHandler:
                     except:
                         driver.execute_script("arguments[0].click();", download_button)
 
-                time.sleep(3)  # Wait for response
+                # Wait longer for new tabs/redirects to occur
+                time.sleep(5)
 
                 # Check for new windows/tabs
-                all_windows = driver.window_handles
-                if len(all_windows) > 1:
-                    await self.send_live_log(bot, chat_id, "🔄 New tab opened, checking for download...")
+                all_current_windows = set(driver.window_handles)
+                new_windows = all_current_windows - all_original_windows
+                
+                if new_windows:
+                    await self.send_live_log(bot, chat_id, f"🔄 {len(new_windows)} new tab(s) opened, checking for download...")
                     
-                    for window in all_windows:
-                        if window != original_window:
-                            driver.switch_to.window(window)
-                            time.sleep(2)
-                            
-                            new_url = driver.current_url
-                            await self.send_live_log(bot, chat_id, f"🔗 Checking new tab: {new_url[:50]}...")
-                            
-                            # Check if it's a direct download URL
-                            if any(ext in new_url.lower() for ext in ['.mp4', '.mkv', '.webm', '.avi', '.m4v']):
-                                await self.send_live_log(bot, chat_id, "✅ Found direct download URL in new tab!")
-                                return new_url
-                            
-                            # Look for more download links in the new tab
-                            final_url = await self.extract_download_url_from_page(driver, bot, chat_id)
-                            if final_url:
-                                return final_url
-                            
-                            driver.close()
+                    for window in new_windows:
+                        driver.switch_to.window(window)
+                        time.sleep(3)  # Wait for tab to fully load
+                        
+                        new_url = driver.current_url
+                        await self.send_live_log(bot, chat_id, f"🔗 New tab URL: {new_url[:60]}...")
+                        
+                        # Check if it's a direct video file URL (like cdn.es2.com/2000/2114/2114.mp4)
+                        if any(ext in new_url.lower() for ext in ['.mp4', '.mkv', '.webm', '.avi', '.m4v', '.flv']):
+                            await self.send_live_log(bot, chat_id, f"✅ Found direct MP4 URL: {new_url}")
+                            return new_url
+                        
+                        # Check for CDN patterns
+                        if 'cdn.' in new_url.lower() and any(pattern in new_url.lower() for pattern in ['video', 'media', 'stream']):
+                            await self.send_live_log(bot, chat_id, f"✅ Found CDN video URL: {new_url}")
+                            return new_url
+                        
+                        # Use developer tools to find video elements
+                        video_url = await self.find_video_with_dev_tools(driver, bot, chat_id)
+                        if video_url:
+                            return video_url
+                        
+                        # Look for more download links in the new tab
+                        final_url = await self.extract_download_url_from_page(driver, bot, chat_id)
+                        if final_url:
+                            return final_url
                     
-                    driver.switch_to.window(original_window)
+                    # Switch back to original window
+                    if original_window in driver.window_handles:
+                        driver.switch_to.window(original_window)
 
                 # Check if current page changed to download URL
                 current_url = driver.current_url
@@ -214,9 +237,86 @@ class AutoDownloadHandler:
             except:
                 pass
 
+    async def find_video_with_dev_tools(self, driver, bot, chat_id):
+        """Use developer tools approach to find video elements"""
+        try:
+            await self.send_live_log(bot, chat_id, "🔧 Using developer tools to find video...")
+            
+            # Check for video elements first
+            video_elements = driver.find_elements(By.TAG_NAME, 'video')
+            if video_elements:
+                for video in video_elements:
+                    src = video.get_attribute('src')
+                    if src and any(ext in src.lower() for ext in ['.mp4', '.mkv', '.webm', '.avi', '.m4v']):
+                        await self.send_live_log(bot, chat_id, f"🎥 Found video element: {src[:60]}...")
+                        return src
+                    
+                    # Check sources within video element
+                    sources = video.find_elements(By.TAG_NAME, 'source')
+                    for source in sources:
+                        src = source.get_attribute('src')
+                        if src and any(ext in src.lower() for ext in ['.mp4', '.mkv', '.webm', '.avi', '.m4v']):
+                            await self.send_live_log(bot, chat_id, f"🎥 Found video source: {src[:60]}...")
+                            return src
+
+            # Execute JavaScript to find video URLs like a developer would
+            js_code = """
+            var videoUrls = [];
+            
+            // Check all video elements
+            document.querySelectorAll('video').forEach(function(video) {
+                if (video.src) videoUrls.push(video.src);
+                video.querySelectorAll('source').forEach(function(source) {
+                    if (source.src) videoUrls.push(source.src);
+                });
+            });
+            
+            // Check all links and attributes for video files
+            document.querySelectorAll('*').forEach(function(element) {
+                ['src', 'href', 'data-src', 'data-video', 'data-url'].forEach(function(attr) {
+                    var val = element.getAttribute(attr);
+                    if (val && (val.includes('.mp4') || val.includes('.mkv') || val.includes('.webm') || val.includes('.avi') || val.includes('.m4v'))) {
+                        videoUrls.push(val);
+                    }
+                });
+            });
+            
+            // Look in window object for video URLs
+            var windowKeys = Object.keys(window);
+            windowKeys.forEach(function(key) {
+                try {
+                    var val = window[key];
+                    if (typeof val === 'string' && (val.includes('.mp4') || val.includes('.mkv') || val.includes('.webm'))) {
+                        videoUrls.push(val);
+                    }
+                } catch(e) {}
+            });
+            
+            return [...new Set(videoUrls)];
+            """
+            
+            video_urls = driver.execute_script(js_code)
+            
+            if video_urls:
+                for url in video_urls:
+                    if url.startswith('http') and any(ext in url.lower() for ext in ['.mp4', '.mkv', '.webm', '.avi', '.m4v']):
+                        await self.send_live_log(bot, chat_id, f"🔧 Dev tools found: {url[:60]}...")
+                        return url
+            
+            return None
+            
+        except Exception as e:
+            logger.error(f"Developer tools search failed: {e}")
+            return None
+
     async def extract_download_url_from_page(self, driver, bot, chat_id):
         """Extract download URLs from current page using developer tools and DOM analysis"""
         try:
+            # First try the developer tools approach
+            dev_tools_url = await self.find_video_with_dev_tools(driver, bot, chat_id)
+            if dev_tools_url:
+                return dev_tools_url
+
             # Enable network monitoring
             try:
                 driver.execute_cdp_cmd('Network.enable', {})
@@ -224,7 +324,7 @@ class AutoDownloadHandler:
             except:
                 pass
 
-            # Look for direct video links
+            # Look for direct video links with expanded selectors
             video_selectors = [
                 'a[href*=".mp4"]',
                 'a[href*=".mkv"]', 
@@ -234,21 +334,29 @@ class AutoDownloadHandler:
                 'video source',
                 'video',
                 '[data-src*=".mp4"]',
-                '[data-video*=".mp4"]'
+                '[data-video*=".mp4"]',
+                'a[href*="cdn."]',
+                'a[href*="get_file"]',
+                '[src*=".mp4"]',
+                '[data-url*=".mp4"]'
             ]
 
             for selector in video_selectors:
                 try:
                     elements = driver.find_elements(By.CSS_SELECTOR, selector)
                     for element in elements:
-                        href = element.get_attribute('href') or element.get_attribute('src') or element.get_attribute('data-src')
+                        href = (element.get_attribute('href') or 
+                               element.get_attribute('src') or 
+                               element.get_attribute('data-src') or
+                               element.get_attribute('data-url') or
+                               element.get_attribute('data-video'))
                         if href and any(ext in href.lower() for ext in ['.mp4', '.mkv', '.webm', '.avi', '.m4v']):
                             await self.send_live_log(bot, chat_id, f"🎥 Found video URL: {href[:60]}...")
                             return href
                 except Exception as e:
                     logger.debug(f"Selector {selector} failed: {e}")
 
-            # Analyze page source for video URLs
+            # Analyze page source for video URLs with expanded patterns
             page_source = driver.page_source
             import re
             
@@ -256,7 +364,10 @@ class AutoDownloadHandler:
                 r'(?:src|href|url)[\s]*[=:][\s]*["\']([^"\']*\.(?:mp4|mkv|webm|m4v|avi)[^"\']*)["\']',
                 r'file[\s]*:[\s]*["\']([^"\']*\.(?:mp4|mkv|webm|m4v|avi)[^"\']*)["\']',
                 r'video[\s]*:[\s]*["\']([^"\']*\.(?:mp4|mkv|webm|m4v|avi)[^"\']*)["\']',
-                r'https?://[^\s"\'<>]+\.(?:mp4|mkv|webm|m4v|avi)(?:\?[^\s"\'<>]*)?'
+                r'https?://[^\s"\'<>]+\.(?:mp4|mkv|webm|m4v|avi)(?:\?[^\s"\'<>]*)?',
+                r'https?://cdn\.[^\s"\'<>]+/[^\s"\'<>]*\.(?:mp4|mkv|webm|m4v|avi)',
+                r'get_file/[^"\'<>\s]+\.(?:mp4|mkv|webm|m4v|avi)',
+                r'"(https?://[^"]*cdn[^"]*\.(?:mp4|mkv|webm|m4v|avi)[^"]*)"'
             ]
 
             for pattern in video_patterns:
