@@ -1,0 +1,33 @@
+les2.com/videos/petite-kannada-g...
+2025-08-13 15:48:10,671 - selenium.webdriver.common.selenium_manager - DEBUG - Selenium Manager binary found at: /home/runner/workspace/.pythonlibs/lib/python3.12/site-packages/selenium/webdriver/common/linux/selenium-manager
+2025-08-13 15:48:10,671 - selenium.webdriver.common.selenium_manager - DEBUG - Executing process: /home/runner/workspace/.pythonlibs/lib/python3.12/site-packages/selenium/webdriver/common/linux/selenium-manager --browser chrome --browser-path /home/runner/.cache/selenium/chrome/linux64/139.0.7258.68/chrome --debug --language-binding python --output json
+2025-08-13 15:48:10,720 - selenium.webdriver.common.selenium_manager - DEBUG - chromedriver not found in PATH
+2025-08-13 15:48:10,720 - selenium.webdriver.common.selenium_manager - DEBUG - Running command: /home/runner/.cache/selenium/chrome/linux64/139.0.7258.68/chrome --version
+2025-08-13 15:48:10,720 - selenium.webdriver.common.selenium_manager - DEBUG - Output: ""
+2025-08-13 15:48:10,720 - selenium.webdriver.common.selenium_manager - DEBUG - Running command: "/home/runner/.cache/selenium/chrome/linux64/139.0.7258.68/chrome" --version
+2025-08-13 15:48:10,720 - selenium.webdriver.common.selenium_manager - DEBUG - Output: ""
+2025-08-13 15:48:10,720 - selenium.webdriver.common.selenium_manager - DEBUG - Running command: '/home/runner/.cache/selenium/chrome/linux64/139.0.7258.68/chrome' --version
+2025-08-13 15:48:10,720 - selenium.webdriver.common.selenium_manager - DEBUG - Output: ""
+2025-08-13 15:48:10,720 - selenium.webdriver.common.selenium_manager - DEBUG - Running command: /home/runner/.cache/selenium/chrome/linux64/139.0.7258.68/chrome --version
+2025-08-13 15:48:10,721 - selenium.webdriver.common.selenium_manager - DEBUG - Output: ""
+2025-08-13 15:48:10,721 - selenium.webdriver.common.selenium_manager - DEBUG - chrome not found in the system
+2025-08-13 15:48:10,721 - selenium.webdriver.common.selenium_manager - DEBUG - Required browser: chrome 139.0.7258.68
+2025-08-13 15:48:10,721 - selenium.webdriver.common.selenium_manager - DEBUG - chrome 139.0.7258.68 already exists
+2025-08-13 15:48:10,721 - selenium.webdriver.common.selenium_manager - DEBUG - chrome 139.0.7258.68 is available at /home/runner/.cache/selenium/chrome/linux64/139.0.7258.68/chrome
+2025-08-13 15:48:10,721 - selenium.webdriver.common.selenium_manager - DEBUG - Required driver: chromedriver 139.0.7258.68
+2025-08-13 15:48:10,721 - selenium.webdriver.common.selenium_manager - DEBUG - chromedriver 139.0.7258.68 already in the cache
+2025-08-13 15:48:10,721 - selenium.webdriver.common.selenium_manager - DEBUG - Driver path: /home/runner/.cache/selenium/chromedriver/linux64/139.0.7258.68/chromedriver
+2025-08-13 15:48:10,721 - selenium.webdriver.common.selenium_manager - DEBUG - Browser path: /home/runner/.cache/selenium/chrome/linux64/139.0.7258.68/chrome
+2025-08-13 15:48:10,721 - selenium.webdriver.common.service - DEBUG - Started executable: `/home/runner/.cache/selenium/chromedriver/linux64/139.0.7258.68/chromedriver` in a child process with pid: 1759 using 0 to output -3
+2025-08-13 15:48:10,732 - plugins.auto_download_detector - ERROR - Failed to setup driver: Message: Service /home/runner/.cache/selenium/chromedriver/linux64/139.0.7258.68/chromedriver unexpectedly exited. Status code was: 127
+
+2025-08-13 15:48:10,824 - plugins.auto_download_detector - INFO - Live log: ❌ Failed to setup browser driver
+2025-08-13 15:48:11,019 - plugins.youtube_dl_echo - INFO - Live log: 😔 Enhanced detection also failed
+2025-08-13 15:48:56,222 - pyrogram.dispatcher - ERROR - 'Message' object has no attribute 'message_id'
+Traceback (most recent call last):
+  File "/home/runner/workspace/.pythonlibs/lib/python3.12/site-packages/pyrogram/dispatcher.py", line 240, in handler_worker
+    await handler.callback(self.client, *args)
+  File "/home/runner/workspace/plugins/custom_thumbnail.py", line 103, in save_photo
+    reply_to_message_id=update.message_id
+                        ^^^^^^^^^^^^^^^^^
+AttributeError: 'Message' object has no attribute 'message_id'
