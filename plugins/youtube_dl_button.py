@@ -137,7 +137,9 @@ async def youtube_dl_call_back(bot, update):
             "--max-filesize", str(Config.TG_MAX_FILE_SIZE),
             "--embed-subs",
             "-f", minus_f_format,
-            "--hls-prefer-ffmpeg", youtube_dl_url,
+            "--hls-prefer-ffmpeg", 
+            "--merge-output-format", "mp4",
+            youtube_dl_url,
             "-o", download_directory
         ]
     if Config.HTTP_PROXY != "":
@@ -153,18 +155,56 @@ async def youtube_dl_call_back(bot, update):
     # command_to_exec.append("--quiet")
     logger.info(command_to_exec)
     start = datetime.now()
+    
+    # Create subprocess with real-time output monitoring
     process = await asyncio.create_subprocess_exec(
         *command_to_exec,
-        # stdout must a pipe to be accessible as process.stdout
         stdout=asyncio.subprocess.PIPE,
-        stderr=asyncio.subprocess.PIPE,
+        stderr=asyncio.subprocess.STDOUT,
     )
-    # Wait for the subprocess to finish
-    stdout, stderr = await process.communicate()
-    e_response = stderr.decode().strip()
-    t_response = stdout.decode().strip()
-    logger.info(e_response)
-    logger.info(t_response)
+    
+    # Monitor download progress in real-time
+    output_lines = []
+    while True:
+        line = await process.stdout.readline()
+        if not line:
+            break
+        line_text = line.decode().strip()
+        output_lines.append(line_text)
+        logger.info(line_text)
+        
+        # Parse download progress and update message
+        if "[download]" in line_text and "%" in line_text:
+            try:
+                # Extract progress percentage
+                if "%" in line_text and "of" in line_text:
+                    progress_part = line_text.split("%")[0]
+                    percentage = progress_part.split()[-1]
+                    
+                    # Extract size info
+                    size_part = line_text.split("of")
+                    if len(size_part) > 1:
+                        downloaded_size = size_part[0].split()[-1]
+                        total_size = size_part[1].split()[0]
+                        
+                        progress_text = f"📥 Downloading... {percentage}%\n📊 {downloaded_size} of {total_size}"
+                        
+                        # Extract speed if available
+                        if "at" in line_text:
+                            speed = line_text.split("at")[-1].strip()
+                            progress_text += f"\n⚡ Speed: {speed}"
+                        
+                        await bot.edit_message_text(
+                            text=progress_text,
+                            chat_id=update.message.chat.id,
+                            message_id=update.message.id
+                        )
+            except Exception as e:
+                logger.error(f"Error parsing progress: {e}")
+    
+    await process.wait()
+    t_response = "\n".join(output_lines)
+    e_response = ""
     ad_string_to_replace = "please report this issue on https://yt-dl.org/bug . Make sure you are using the latest version; see  https://yt-dl.org/update  on how to update. Be sure to call youtube-dl with the --verbose flag and include its complete output."
     if e_response and ad_string_to_replace in e_response:
         error_message = e_response.replace(ad_string_to_replace, "")
@@ -180,12 +220,35 @@ async def youtube_dl_call_back(bot, update):
         end_one = datetime.now()
         time_taken_for_download = (end_one -start).seconds
         file_size = Config.TG_MAX_FILE_SIZE + 1
-        try:
+        
+        # Try to find the actual downloaded file
+        actual_file = None
+        base_name = os.path.splitext(download_directory)[0]
+        
+        # Check for various possible file extensions
+        possible_extensions = ['.mp4', '.mkv', '.webm', '.m4a', '.mp3']
+        
+        for ext in possible_extensions:
+            test_file = base_name + ext
+            if os.path.exists(test_file):
+                actual_file = test_file
+                break
+        
+        # If no direct match, check the download directory for any files
+        if not actual_file:
+            download_dir = os.path.dirname(download_directory)
+            if os.path.exists(download_dir):
+                files = [f for f in os.listdir(download_dir) if f.endswith(tuple(possible_extensions))]
+                if files:
+                    # Get the most recently created file
+                    files.sort(key=lambda x: os.path.getctime(os.path.join(download_dir, x)), reverse=True)
+                    actual_file = os.path.join(download_dir, files[0])
+        
+        if actual_file and os.path.exists(actual_file):
+            download_directory = actual_file
             file_size = os.stat(download_directory).st_size
-        except FileNotFoundError as exc:
-            download_directory = os.path.splitext(download_directory)[0] + "." + "mkv"
-            # https://stackoverflow.com/a/678242/4723940
-            file_size = os.stat(download_directory).st_size
+        else:
+            raise FileNotFoundError(f"Could not find downloaded file. Expected: {download_directory}")
         if file_size > Config.TG_MAX_FILE_SIZE:
             await bot.edit_message_text(
                 chat_id=update.message.chat.id,
