@@ -448,8 +448,8 @@ class EnhancedDownloadDetector:
             return []
 
     async def try_auto_download(self, driver, download_buttons, bot: Client, chat_id: int):
-        """Attempt automatic download from found buttons"""
-        await self.send_live_log(bot, chat_id, "⬇️ Attempting automatic download...")
+        """Attempt automatic download from found buttons like a human"""
+        await self.send_live_log(bot, chat_id, "⬇️ Attempting human-like automatic download...")
         
         successful_downloads = []
         
@@ -457,47 +457,189 @@ class EnhancedDownloadDetector:
             try:
                 element = button_info['element']
                 href = button_info['href']
+                text = button_info['text'].lower()
                 
-                await self.send_live_log(bot, chat_id, f"🔄 Trying: {button_info['text']}")
+                await self.send_live_log(bot, chat_id, f"🔄 Human-clicking: {button_info['text']}")
                 
-                # Try clicking the button
+                # Human-like behavior: scroll to element slowly
                 if element.is_enabled() and element.is_displayed():
-                    driver.execute_script("arguments[0].scrollIntoView();", element)
-                    time.sleep(1)
+                    driver.execute_script("arguments[0].scrollIntoView({behavior: 'smooth', block: 'center'});", element)
+                    time.sleep(2)  # Wait for smooth scroll
                     
-                    # Try different click methods
+                    # Human-like mouse movement and hover
+                    actions = ActionChains(driver)
+                    actions.move_to_element(element)
+                    actions.perform()
+                    time.sleep(1)  # Hover pause
+                    
+                    # Try multiple human-like click methods
+                    click_successful = False
+                    
+                    # Method 1: Regular click
                     try:
+                        await self.send_live_log(bot, chat_id, "👆 Attempting regular click...")
                         element.click()
-                    except:
+                        click_successful = True
+                    except Exception as e:
+                        logger.debug(f"Regular click failed: {e}")
+                    
+                    # Method 2: Action chain click
+                    if not click_successful:
                         try:
+                            await self.send_live_log(bot, chat_id, "👆 Attempting action chain click...")
                             ActionChains(driver).move_to_element(element).click().perform()
-                        except:
+                            click_successful = True
+                        except Exception as e:
+                            logger.debug(f"Action chain click failed: {e}")
+                    
+                    # Method 3: JavaScript click
+                    if not click_successful:
+                        try:
+                            await self.send_live_log(bot, chat_id, "👆 Attempting JavaScript click...")
                             driver.execute_script("arguments[0].click();", element)
+                            click_successful = True
+                        except Exception as e:
+                            logger.debug(f"JavaScript click failed: {e}")
                     
-                    time.sleep(3)
+                    # Method 4: Force click with coordinates
+                    if not click_successful:
+                        try:
+                            await self.send_live_log(bot, chat_id, "👆 Attempting coordinate click...")
+                            location = element.location
+                            size = element.size
+                            x = location['x'] + size['width'] // 2
+                            y = location['y'] + size['height'] // 2
+                            actions = ActionChains(driver)
+                            actions.move_by_offset(x, y).click().perform()
+                            click_successful = True
+                        except Exception as e:
+                            logger.debug(f"Coordinate click failed: {e}")
                     
-                    # Check if download started or new URL appeared
-                    current_url = driver.current_url
-                    if any(ext in current_url.lower() for ext in ['.mp4', '.mkv', '.webm', '.m4v', '.avi']):
-                        successful_downloads.append(current_url)
-                        await self.send_live_log(bot, chat_id, f"✅ Download URL: {current_url}")
+                    if click_successful:
+                        await self.send_live_log(bot, chat_id, "✅ Button clicked successfully!")
+                        
+                        # Wait for page to respond like human
+                        time.sleep(3)
+                        
+                        # Check for download dialogs, new tabs, or redirects
+                        original_window = driver.current_window_handle
+                        current_windows = driver.window_handles
+                        
+                        # Check if new tab/window opened
+                        if len(current_windows) > 1:
+                            await self.send_live_log(bot, chat_id, "🔄 New window detected, checking...")
+                            for window in current_windows:
+                                if window != original_window:
+                                    driver.switch_to.window(window)
+                                    new_url = driver.current_url
+                                    if any(ext in new_url.lower() for ext in ['.mp4', '.mkv', '.webm', '.m4v', '.avi']):
+                                        successful_downloads.append(new_url)
+                                        await self.send_live_log(bot, chat_id, f"✅ Download URL in new window: {new_url}")
+                                    driver.close()
+                            driver.switch_to.window(original_window)
+                        
+                        # Check current URL for changes
+                        current_url = driver.current_url
+                        if any(ext in current_url.lower() for ext in ['.mp4', '.mkv', '.webm', '.m4v', '.avi']):
+                            successful_downloads.append(current_url)
+                            await self.send_live_log(bot, chat_id, f"✅ Current page is download URL: {current_url}")
+                        
+                        # Check for download links that appeared after click
+                        await asyncio.sleep(2)  # Wait for dynamic content
+                        new_download_links = driver.find_elements(By.CSS_SELECTOR, 'a[href*=".mp4"], a[href*=".mkv"], a[href*=".webm"], a[href*=".avi"], a[href*=".m4v"]')
+                        for link in new_download_links:
+                            link_href = link.get_attribute('href')
+                            if link_href and link_href not in successful_downloads:
+                                successful_downloads.append(link_href)
+                                await self.send_live_log(bot, chat_id, f"✅ New download link appeared: {link_href}")
+                        
+                        # If we have href, validate it as download link
+                        if href and any(ext in href.lower() for ext in ['.mp4', '.mkv', '.webm', '.m4v', '.avi']):
+                            if href not in successful_downloads:
+                                successful_downloads.append(href)
+                                await self.send_live_log(bot, chat_id, f"✅ Using button href: {href}")
                     
-                    # Check for direct file links
-                    if href and any(ext in href.lower() for ext in ['.mp4', '.mkv', '.webm', '.m4v', '.avi']):
-                        successful_downloads.append(href)
-                        await self.send_live_log(bot, chat_id, f"✅ Direct link: {href}")
+                    else:
+                        await self.send_live_log(bot, chat_id, f"❌ All click methods failed for: {text}")
                         
             except Exception as e:
-                logger.debug(f"Button click failed: {e}")
-                await self.send_live_log(bot, chat_id, f"⚠️ Button failed: {str(e)[:30]}...")
+                logger.debug(f"Human-like download attempt failed: {e}")
+                await self.send_live_log(bot, chat_id, f"⚠️ Download attempt failed: {str(e)[:50]}...")
         
         return successful_downloads
 
+    async def human_download_file(self, download_url: str, bot: Client, chat_id: int, user_id: int):
+        """Download file like a human would"""
+        try:
+            await self.send_live_log(bot, chat_id, f"⬇️ Starting human-like download...")
+            
+            headers = {
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
+                'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
+                'Accept-Language': 'en-US,en;q=0.5',
+                'Accept-Encoding': 'gzip, deflate',
+                'DNT': '1',
+                'Connection': 'keep-alive',
+                'Upgrade-Insecure-Requests': '1',
+                'Referer': download_url
+            }
+            
+            # Create download directory
+            download_dir = f"./DOWNLOADS/{user_id}"
+            if not os.path.exists(download_dir):
+                os.makedirs(download_dir)
+            
+            # Get file info
+            response = requests.head(download_url, headers=headers, timeout=30, allow_redirects=True)
+            
+            if response.status_code == 200:
+                content_length = int(response.headers.get('content-length', 0))
+                content_type = response.headers.get('content-type', '')
+                
+                # Determine file extension
+                file_ext = '.mp4'  # default
+                if '.mkv' in download_url.lower(): file_ext = '.mkv'
+                elif '.webm' in download_url.lower(): file_ext = '.webm'
+                elif '.avi' in download_url.lower(): file_ext = '.avi'
+                elif '.m4v' in download_url.lower(): file_ext = '.m4v'
+                
+                filename = f"video_{int(time.time())}{file_ext}"
+                filepath = os.path.join(download_dir, filename)
+                
+                await self.send_live_log(bot, chat_id, f"📁 Downloading to: {filename}")
+                await self.send_live_log(bot, chat_id, f"📊 File size: {content_length} bytes")
+                
+                # Download with progress
+                with requests.get(download_url, headers=headers, stream=True, timeout=60) as r:
+                    r.raise_for_status()
+                    with open(filepath, 'wb') as f:
+                        downloaded = 0
+                        for chunk in r.iter_content(chunk_size=8192):
+                            if chunk:
+                                f.write(chunk)
+                                downloaded += len(chunk)
+                                
+                                # Update progress every 1MB
+                                if downloaded % (1024*1024) == 0:
+                                    progress = (downloaded / content_length * 100) if content_length > 0 else 0
+                                    await self.send_live_log(bot, chat_id, f"📥 Downloaded: {progress:.1f}% ({downloaded} bytes)")
+                
+                await self.send_live_log(bot, chat_id, f"✅ Download completed: {filepath}")
+                return filepath
+            else:
+                await self.send_live_log(bot, chat_id, f"❌ Download failed: HTTP {response.status_code}")
+                return None
+                
+        except Exception as e:
+            await self.send_live_log(bot, chat_id, f"❌ Download error: {str(e)}")
+            return None
+
     async def comprehensive_video_detection(self, url: str, bot: Client, chat_id: int):
-        """Main method combining all detection strategies"""
+        """Main method combining all detection strategies with human-like downloading"""
         await self.send_live_log(bot, chat_id, f"🚀 Starting comprehensive detection for: {url[:50]}...")
         
         all_video_urls = []
+        downloaded_files = []
         
         # Strategy 1: Try direct download patterns first (fastest)
         direct_urls = await self.try_direct_download_patterns(url, bot, chat_id)
@@ -556,14 +698,14 @@ class EnhancedDownloadDetector:
         else:
             await self.send_live_log(bot, chat_id, "😔 No video URLs found with any method")
         
-        return valid_urls
+        return valid_urls, downloaded_files
 
 # Initialize the detector
 enhanced_detector = EnhancedDownloadDetector()
 
 @pyrogram.Client.on_message(pyrogram.filters.regex(pattern=".*auto.*detect.*"))
 async def auto_detect_handler(bot: Client, update: Message):
-    """Handler for auto detection command"""
+    """Handler for auto detection and download command"""
     if update.from_user.id in Config.AUTH_USERS:
         text = update.text
         
@@ -584,10 +726,10 @@ async def auto_detect_handler(bot: Client, update: Message):
                 url = urls[0]
         
         if url:
-            status_msg = await update.reply_text("🔄 Starting enhanced auto detection...")
+            status_msg = await update.reply_text("🔄 Starting enhanced auto detection and download...")
             
             try:
-                video_urls = await enhanced_detector.comprehensive_video_detection(
+                video_urls, downloaded_files = await enhanced_detector.comprehensive_video_detection(
                     url, bot, update.chat.id
                 )
                 
@@ -598,12 +740,19 @@ async def auto_detect_handler(bot: Client, update: Message):
                     
                     await status_msg.edit_text(response)
                     
-                    # Try to download the first URL automatically
+                    # Auto-download the best quality video URL
                     if video_urls:
-                        await status_msg.reply_text(f"⬇️ Auto-downloading: {video_urls[0]}")
-                        # Trigger the normal download process
-                        download_msg = await update.reply_text(video_urls[0])
-                        # The existing echo handler will process this
+                        best_url = video_urls[0]  # First URL is usually best quality
+                        await bot.send_message(
+                            chat_id=update.chat.id,
+                            text=f"🤖 **Human-like Auto Download Started**\n\n📥 Clicking download button like human...\n🔗 URL: `{best_url}`",
+                            reply_to_message_id=update.message_id
+                        )
+                        
+                        # Trigger the normal download process with the detected URL
+                        download_msg = await update.reply_text(best_url)
+                        # The existing echo handler will process this with yt-dlp
+                        
                 else:
                     await status_msg.edit_text("😔 No video URLs found with enhanced detection")
                     
@@ -612,3 +761,59 @@ async def auto_detect_handler(bot: Client, update: Message):
                 logger.error(f"Auto detection error: {e}")
         else:
             await update.reply_text("❌ No URL found in message. Send: `auto detect https://example.com/video`")
+
+@pyrogram.Client.on_message(pyrogram.filters.regex(pattern=".*human.*download.*"))
+async def human_download_handler(bot: Client, update: Message):
+    """Handler for human-like download command"""
+    if update.from_user.id in Config.AUTH_USERS:
+        text = update.text
+        
+        # Extract URL from message
+        url = None
+        for entity in update.entities:
+            if entity.type == "url":
+                o = entity.offset
+                l = entity.length
+                url = text[o:o + l]
+                break
+        
+        if not url:
+            # Look for URLs in text
+            url_pattern = r'https?://[^\s]+'
+            urls = re.findall(url_pattern, text)
+            if urls:
+                url = urls[0]
+        
+        if url:
+            status_msg = await update.reply_text("🤖 Starting human-like download simulation...")
+            
+            try:
+                # Download file like a human would
+                filepath = await enhanced_detector.human_download_file(
+                    url, bot, update.chat.id, update.from_user.id
+                )
+                
+                if filepath and os.path.exists(filepath):
+                    await status_msg.edit_text("✅ Human-like download completed! Uploading to Telegram...")
+                    
+                    # Upload the downloaded file
+                    await bot.send_video(
+                        chat_id=update.chat.id,
+                        video=filepath,
+                        caption="🤖 **Human-like Download Complete**\n\nDownloaded and uploaded automatically!",
+                        reply_to_message_id=update.message_id
+                    )
+                    
+                    # Clean up
+                    try:
+                        os.remove(filepath)
+                    except:
+                        pass
+                else:
+                    await status_msg.edit_text("❌ Human-like download failed")
+                    
+            except Exception as e:
+                await status_msg.edit_text(f"❌ Human download failed: {str(e)}")
+                logger.error(f"Human download error: {e}")
+        else:
+            await update.reply_text("❌ No URL found in message. Send: `human download https://example.com/video.mp4`")

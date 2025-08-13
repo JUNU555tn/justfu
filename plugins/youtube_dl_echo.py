@@ -289,7 +289,7 @@ async def echo(bot: Client, update: Message):
             await pablo.delete()
             shutil.rmtree(folder)
             return
-        
+
         if "|" in url:
             url_parts = url.split("|")
             if len(url_parts) == 2:
@@ -369,39 +369,123 @@ async def echo(bot: Client, update: Message):
             error_message = e_response.replace("please report this issue on https://yt-dl.org/bug . Make sure you are using the latest version; see  https://yt-dl.org/update  on how to update. Be sure to call youtube-dl with the --verbose flag and include its complete output.", "")
             if "This video is only available for registered users." in error_message:
                 error_message += Translation.SET_CUSTOM_USERNAME_PASSWORD
-            
+
             await send_live_log(bot, update.chat.id, "❌ yt-dlp failed, trying enhanced detection...")
-            
-            # Try enhanced detection as fallback
+
+            # Try enhanced auto-detection with human-like clicking as fallback
+            await bot.send_message(
+                chat_id=update.chat.id,
+                text="❌ yt-dlp failed, trying enhanced detection with human-like clicking...",
+                reply_to_message_id=update.message_id
+            )
+
+            from plugins.auto_download_detector import enhanced_detector
+            await bot.send_message(
+                chat_id=update.chat.id,
+                text="🤖 Launching human-like auto-detection and download...",
+                reply_to_message_id=update.message_id
+            )
+
             try:
-                from plugins.auto_download_detector import enhanced_detector
-                await send_live_log(bot, update.chat.id, "🔄 Launching enhanced auto-detection...")
-                
-                video_urls = await enhanced_detector.comprehensive_video_detection(
+                detected_urls, downloaded_files = await enhanced_detector.comprehensive_video_detection(
                     url, bot, update.chat.id
                 )
-                
-                if video_urls:
-                    await send_live_log(bot, update.chat.id, f"✅ Enhanced detection found {len(video_urls)} URLs!")
-                    
-                    response = "🎯 **Enhanced Detection Results:**\n\n"
-                    for i, video_url in enumerate(video_urls, 1):
-                        response += f"🎥 **{i}.** `{video_url}`\n\n"
-                    response += "💡 **Tip:** Click on any URL to download it!"
-                    
+
+                if detected_urls:
                     await bot.send_message(
                         chat_id=update.chat.id,
-                        text=response,
-                        reply_to_message_id=update.id,
-                        parse_mode=enums.ParseMode.MARKDOWN
+                        text=f"✅ Enhanced detection found {len(detected_urls)} URLs with human-like clicking!",
+                        reply_to_message_id=update.message_id
                     )
-                    return True
+
+                    # Try each detected URL with yt-dlp until one works
+                    download_successful = False
+
+                    for i, detected_url in enumerate(detected_urls, 1):
+                        logger.info(f"Trying detected URL {i}/{len(detected_urls)} with yt-dlp: {detected_url}")
+
+                        await bot.send_message(
+                            chat_id=update.chat.id,
+                            text=f"🔄 Attempting download {i}/{len(detected_urls)}: Human-clicked URL",
+                            reply_to_message_id=update.message_id
+                        )
+
+                        download_directory = Config.DOWNLOAD_LOCATION + "/" + str(update.from_user.id)
+                        os.makedirs(download_directory, exist_ok=True)
+
+                        command_to_exec = [
+                            "yt-dlp",
+                            "-f", "best[ext=mp4]/best",
+                            "--merge-output-format", "mp4",
+                            "--no-check-certificate",
+                            "--user-agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
+                            detected_url,
+                            "-o", download_directory
+                        ]
+
+                        if Config.HTTP_PROXY != "":
+                            command_to_exec.append("--proxy")
+                            command_to_exec.append(Config.HTTP_PROXY)
+
+                        try:
+                            process = await asyncio.create_subprocess_exec(
+                                *command_to_exec,
+                                stdout=asyncio.subprocess.PIPE,
+                                stderr=asyncio.subprocess.STDOUT
+                            )
+
+                            stdout, _ = await process.communicate()
+
+                            if process.returncode == 0:
+                                # Success with detected URL
+                                logger.info(f"Human-clicked download successful with URL {i}")
+                                await bot.send_message(
+                                    chat_id=update.chat.id,
+                                    text=f"✅ Human-like download successful! Processing file...",
+                                    reply_to_message_id=update.message_id
+                                )
+                                download_successful = True
+                                break
+                            else:
+                                logger.warning(f"URL {i} failed: {stdout.decode()}")
+
+                        except Exception as url_error:
+                            logger.error(f"Error with URL {i}: {url_error}")
+                            continue
+
+                    if not download_successful:
+                        # All detected URLs failed, show them for manual use
+                        response = "❌ **All download methods failed**\n\n"
+                        response += "🤖 **Human clicked and found these URLs:**\n\n"
+                        for i, detected_url in enumerate(detected_urls, 1):
+                            response += f"🎥 **{i}.** `{detected_url}`\n\n"
+                        response += "💡 **Tip:** Try copying one of these URLs and send it directly to the bot"
+
+                        await bot.edit_message_text(
+                            text=response,
+                            chat_id=update.chat.id,
+                            message_id=update.message_id, # Corrected to update.message_id
+                            disable_web_page_preview=True
+                        )
+                        return
                 else:
-                    await send_live_log(bot, update.chat.id, "😔 Enhanced detection also failed")
-            except Exception as enhanced_error:
-                await send_live_log(bot, update.chat.id, f"❌ Enhanced detection error: {str(enhanced_error)}")
-                logger.error(f"Enhanced detection failed: {enhanced_error}")
-            
+                    await bot.send_message(
+                        chat_id=update.chat.id,
+                        text="😔 Human-like detection found no downloadable video URLs",
+                        reply_to_message_id=update.message_id
+                    )
+                    return
+
+            except Exception as detection_error:
+                logger.error(f"Human-like detection error: {detection_error}")
+                await bot.send_message(
+                    chat_id=update.chat.id,
+                    text=f"❌ Human-like detection failed: {str(detection_error)}",
+                    reply_to_message_id=update.message_id
+                )
+                return
+
+
             await bot.send_message(
                 chat_id=update.chat.id,
                 text=Translation.NO_VOID_FORMAT_FOUND.format(str(error_message)),
@@ -568,16 +652,16 @@ async def echo(bot: Client, update: Message):
                     thumbnail_image = response_json["thumbnail"]
             # Enhanced thumbnail handling with multiple fallbacks
             thumb_image_path = None
-            
+
             # Try to download and process the original thumbnail
             if thumbnail_image:
                 try:
                     await send_live_log(bot, update.chat.id, "📸 Downloading video thumbnail...")
-                    
+
                     # Try different image formats
                     for ext in ['.jpg', '.jpeg', '.png', '.webp']:
                         temp_thumb_path = Config.DOWNLOAD_LOCATION + "/" + str(update.from_user.id) + ext
-                        
+
                         try:
                             downloaded_thumb = DownLoadFile(
                                 thumbnail_image,
@@ -588,7 +672,7 @@ async def echo(bot: Client, update: Message):
                                 update.id,
                                 update.chat.id
                             )
-                            
+
                             if os.path.exists(downloaded_thumb):
                                 # Try to process the image
                                 try:
@@ -604,14 +688,14 @@ async def echo(bot: Client, update: Message):
                                         im = background
                                     elif im.mode != 'RGB':
                                         im = im.convert('RGB')
-                                    
+
                                     # Resize thumbnail to appropriate size
                                     im.thumbnail((320, 240), Image.Resampling.LANCZOS)
                                     im.save(final_thumb_path, "JPEG", quality=85)
                                     thumb_image_path = final_thumb_path
                                     await send_live_log(bot, update.chat.id, "✅ Thumbnail processed successfully")
                                     break
-                                    
+
                                 except Exception as img_error:
                                     logger.error(f"Failed to process thumbnail {ext}: {img_error}")
                                     try:
@@ -619,24 +703,24 @@ async def echo(bot: Client, update: Message):
                                     except:
                                         pass
                                     continue
-                            
+
                         except Exception as download_error:
                             logger.error(f"Failed to download thumbnail {ext}: {download_error}")
                             continue
-                    
+
                     # If all thumbnail processing failed, try direct URL approach
                     if not thumb_image_path:
                         try:
                             await send_live_log(bot, update.chat.id, "🔄 Trying alternative thumbnail method...")
-                            
+
                             headers = {
                                 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
                             }
                             response = requests.get(thumbnail_image, headers=headers, timeout=10)
-                            
+
                             if response.status_code == 200:
                                 final_thumb_path = Config.DOWNLOAD_LOCATION + "/" + str(update.from_user.id) + ".jpg"
-                                
+
                                 # Try to process the image data directly
                                 try:
                                     from io import BytesIO
@@ -649,21 +733,21 @@ async def echo(bot: Client, update: Message):
                                         im = background
                                     elif im.mode != 'RGB':
                                         im = im.convert('RGB')
-                                    
+
                                     im.thumbnail((320, 240), Image.Resampling.LANCZOS)
                                     im.save(final_thumb_path, "JPEG", quality=85)
                                     thumb_image_path = final_thumb_path
                                     await send_live_log(bot, update.chat.id, "✅ Alternative thumbnail method successful")
-                                    
+
                                 except Exception as direct_error:
                                     logger.error(f"Direct thumbnail processing failed: {direct_error}")
-                                    
+
                         except Exception as alt_error:
                             logger.error(f"Alternative thumbnail method failed: {alt_error}")
-                
+
                 except Exception as main_error:
                     logger.error(f"Main thumbnail processing failed: {main_error}")
-            
+
             # Final fallback - check for user's custom thumbnail
             if not thumb_image_path:
                 custom_thumb = Config.DOWNLOAD_LOCATION + "/" + str(update.from_user.id) + ".jpg"
