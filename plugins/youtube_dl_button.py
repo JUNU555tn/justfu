@@ -196,12 +196,15 @@ async def youtube_dl_call_back(bot, update):
             images = await generate_screen_shots(
                 download_directory,
                 tmp_directory_for_each_user,
-                is_w_f,
-                Config.DEF_WATER_MARK_FILE,
-                300,
-                9
+                False,
+                None,
+                0,
+                10
             )
-            logger.info(images)
+
+            # Handle case when ffmpeg is not available
+            if images is None:
+                logger.warning("Could not generate screenshots, proceeding without them")
             await bot.edit_message_text(
                 text=Translation.UPLOAD_START,
                 chat_id=update.message.chat.id,
@@ -242,7 +245,7 @@ async def youtube_dl_call_back(bot, update):
                     img.resize((90, height))
                 img.save(thumb_image_path, "JPEG")
                 # https://pillow.readthedocs.io/en/3.1.x/reference/Image.html#create-thumbnails
-                
+
             else:
                 thumb_image_path = None
             start_time = time.time()

@@ -33,7 +33,7 @@ def estimate_file_size_by_quality(height, duration=None):
     """Estimate file size based on video quality"""
     if not duration:
         duration = 600  # Default 10 minutes
-    
+
     # Rough estimates in MB per minute for different qualities
     quality_rates = {
         2160: 25,    # 4K - ~25MB/min
@@ -44,11 +44,11 @@ def estimate_file_size_by_quality(height, duration=None):
         360: 1.5,    # 360p - ~1.5MB/min
         240: 1       # 240p - ~1MB/min
     }
-    
+
     duration_minutes = duration / 60
     rate = quality_rates.get(height, 2)
     estimated_mb = rate * duration_minutes
-    
+
     if estimated_mb >= 1024:
         return f"{estimated_mb/1024:.1f}GB"
     else:
@@ -58,17 +58,79 @@ def estimate_file_size_by_quality(height, duration=None):
 try:
     import lk21
     LK21_AVAILABLE = True
-    logger.info("LK21 bypass module loaded successfully.")
+    logger.info("lk21 module loaded successfully.")
 except ImportError:
+    LK21_AVAILABLE = False
+    logger.warning("Using alternative bypass method for LK21 compatible sites.")
+
+# Custom LK21 bypass implementation
+def custom_lk21_bypass(url):
+    """
+    Custom bypass for LK21-compatible sites
+    """
     try:
-        # Alternative bypass method
-        import requests
-        from bs4 import BeautifulSoup
-        LK21_AVAILABLE = "alternative"
-        logger.warning("Using alternative bypass method for LK21 compatible sites.")
-    except ImportError:
-        LK21_AVAILABLE = False
-        logger.warning("lk21 module not found or incompatible. LK21 bypass will not be available.")
+        import re
+
+        # Common headers to bypass detection
+        headers = {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
+            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
+            'Accept-Language': 'en-US,en;q=0.5',
+            'Accept-Encoding': 'gzip, deflate',
+            'DNT': '1',
+            'Connection': 'keep-alive',
+            'Upgrade-Insecure-Requests': '1',
+        }
+
+        session = requests.Session()
+        session.headers.update(headers)
+
+        # Get the page content
+        response = session.get(url)
+        response.raise_for_status()
+
+        # Look for common video URL patterns
+        video_patterns = [
+            r'file\s*:\s*["\']([^"\']+\.mp4[^"\']*)["\']',
+            r'src\s*:\s*["\']([^"\']+\.mp4[^"\']*)["\']',
+            r'source\s*:\s*["\']([^"\']+\.mp4[^"\']*)["\']',
+            r'"file"\s*:\s*"([^"]+\.mp4[^"]*)"',
+            r'data-src=["\']([^"\']+\.mp4[^"\']*)["\']',
+            r'href=["\']([^"\']+\.mp4[^"\']*)["\']'
+        ]
+
+        content = response.text
+
+        for pattern in video_patterns:
+            matches = re.findall(pattern, content, re.IGNORECASE)
+            if matches:
+                # Return the first valid match
+                for match in matches:
+                    if match.startswith('http'):
+                        logger.info(f"Found video URL via custom bypass: {match}")
+                        return match
+
+        # If no direct video URL found, try to extract from JavaScript
+        js_patterns = [
+            r'var\s+\w+\s*=\s*["\']([^"\']+\.mp4[^"\']*)["\']',
+            r'let\s+\w+\s*=\s*["\']([^"\']+\.mp4[^"\']*)["\']',
+            r'const\s+\w+\s*=\s*["\']([^"\']+\.mp4[^"\']*)["\']'
+        ]
+
+        for pattern in js_patterns:
+            matches = re.findall(pattern, content, re.IGNORECASE)
+            if matches:
+                for match in matches:
+                    if match.startswith('http'):
+                        logger.info(f"Found video URL in JavaScript: {match}")
+                        return match
+
+        logger.warning("Could not extract video URL using custom bypass")
+        return None
+
+    except Exception as e:
+        logger.error(f"Error in custom LK21 bypass: {str(e)}")
+        return None
 
 
 @pyrogram.Client.on_message(pyrogram.filters.regex(pattern=".*http.*"))
@@ -91,7 +153,7 @@ async def echo(bot: Client, update: Message):
                 return
             os.makedirs(folder)
             await pablo.edit_text('🔍 Bypassing URL...')
-            
+
             if LK21_AVAILABLE == True:
                 try:
                     bypasser = lk21.Bypass()
@@ -115,7 +177,12 @@ async def echo(bot: Client, update: Message):
                     logger.error(f"Alternative bypass failed: {e}")
                     xurl = url
             else:
-                xurl = url
+                # Custom bypass if lk21 and alternative fail
+                xurl = custom_lk21_bypass(url)
+                if xurl is None:
+                    logger.warning("Custom bypass failed, falling back to direct link.")
+                    xurl = url
+
             if ' | ' in url:
                 url_parts = url.split(' | ')
                 url = url_parts[0]
@@ -128,7 +195,7 @@ async def echo(bot: Client, update: Message):
                     file_name = file_name.replace('+', ' ')
             dldir = f'{folder}{file_name}'
             await pablo.edit_text('📥 Starting download...')
-            
+
             # Download with progress
             try:
                 headers = {
@@ -139,13 +206,13 @@ async def echo(bot: Client, update: Message):
                     total_size = int(r.headers.get('content-length', 0))
                     downloaded = 0
                     start_time = time.time()
-                    
+
                     with open(dldir, 'wb') as f:
                         for chunk in r.iter_content(chunk_size=8192):
                             if chunk:
                                 f.write(chunk)
                                 downloaded += len(chunk)
-                                
+
                                 # Update progress every 1MB or 10%
                                 if downloaded % (1024*1024) == 0 or (total_size and downloaded % (total_size//10) == 0):
                                     if total_size:
@@ -218,7 +285,7 @@ async def echo(bot: Client, update: Message):
             shutil.rmtree(folder)
             return
         elif ext.domain in bypass and not LK21_AVAILABLE:
-            await update.reply_text('⚠️ Bypass functionality not available. Installing required modules...\n\nPlease try again in a moment.')
+            await update.reply_text('⚠️ Bypass functionality not available. Please install `lk21` and `requests`.\n\n`pip install lk21 requests`')
             return
         if "|" in url:
             url_parts = url.split("|")
@@ -329,14 +396,14 @@ async def echo(bot: Client, update: Message):
                     if format_string is None:
                         format_string = formats.get("format")
                     format_ext = formats.get("ext")
-                    
+
                     # Enhanced file size calculation
                     approx_file_size = ""
                     if "filesize" in formats and formats["filesize"]:
                         approx_file_size = humanbytes(formats["filesize"])
                     elif "filesize_approx" in formats and formats["filesize_approx"]:
                         approx_file_size = "~" + humanbytes(formats["filesize_approx"])
-                    
+
                     # Get resolution info
                     resolution = ""
                     if formats.get("height"):
@@ -352,7 +419,7 @@ async def echo(bot: Client, update: Message):
                             resolution = "360p"
                         else:
                             resolution = f"{formats.get('height')}p"
-                    
+
                     # Enhanced format display with size estimation
                     if resolution and approx_file_size:
                         display_quality = f"{resolution} {approx_file_size}"
@@ -367,7 +434,7 @@ async def echo(bot: Client, update: Message):
                         display_quality = format_string
                     else:
                         display_quality = format_ext
-                    
+
                     cb_string_video = "{}|{}|{}".format(
                         "video", format_id, format_ext)
                     cb_string_file = "{}|{}|{}".format(

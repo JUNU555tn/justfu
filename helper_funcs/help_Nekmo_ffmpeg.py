@@ -12,8 +12,14 @@ logger = logging.getLogger(__name__)
 import asyncio
 import os
 import time
+import shutil
 from hachoir.metadata import extractMetadata
 from hachoir.parser import createParser
+
+# Check if ffmpeg is available
+def is_ffmpeg_available():
+    """Check if ffmpeg is installed and available"""
+    return shutil.which("ffmpeg") is not None
 
 
 async def place_water_mark(input_file, output_file, water_mark_file):
@@ -140,6 +146,11 @@ async def generate_screen_shots(
     min_duration,
     no_of_photos
 ):
+    """Generate screenshots from video. Returns None if ffmpeg is not available."""
+    if not is_ffmpeg_available():
+        logger.warning("ffmpeg not available, skipping screenshot generation")
+        return None
+
     metadata = extractMetadata(createParser(video_file))
     duration = 0
     if metadata is not None:
