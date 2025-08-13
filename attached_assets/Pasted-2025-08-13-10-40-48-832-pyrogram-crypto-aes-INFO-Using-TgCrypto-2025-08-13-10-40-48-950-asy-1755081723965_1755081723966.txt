@@ -1,0 +1,153 @@
+2025-08-13 10:40:48,832 - pyrogram.crypto.aes - INFO - Using TgCrypto
+2025-08-13 10:40:48,950 - asyncio - DEBUG - Using selector: EpollSelector
+2025-08-13 10:40:50,666 - plugins.youtube_dl_echo - WARNING - Using alternative bypass method for LK21 compatible sites.
+2025-08-13 10:41:05,509 - plugins.youtube_dl_echo - INFO - {
+    "_": "User",
+    "id": 6415368038,
+    "is_self": false,
+    "is_contact": false,
+    "is_mutual_contact": false,
+    "is_deleted": false,
+    "is_bot": false,
+    "is_verified": false,
+    "is_restricted": false,
+    "is_scam": false,
+    "is_fake": false,
+    "is_support": false,
+    "is_premium": false,
+    "first_name": "Jack",
+    "last_name": "Sparrow 🔥",
+    "status": "UserStatus.RECENTLY",
+    "username": "Pawsismyson",
+    "language_code": "en"
+}
+2025-08-13 10:41:05,510 - filelock - DEBUG - Attempting to acquire lock 139946308074912 on /home/runner/workspace/.cache/python-tldextract/3.12.11.final__vnvdzw4182wb2ifzi0cczhv80yfnpx1q-python3-3.12.11__381681__tldextract-5.3.0/publicsuffix.org-tlds/de84b5ca2167d4c83e38fb162f2e8738.tldextract.json.lock
+2025-08-13 10:41:05,510 - filelock - DEBUG - Lock 139946308074912 acquired on /home/runner/workspace/.cache/python-tldextract/3.12.11.final__vnvdzw4182wb2ifzi0cczhv80yfnpx1q-python3-3.12.11__381681__tldextract-5.3.0/publicsuffix.org-tlds/de84b5ca2167d4c83e38fb162f2e8738.tldextract.json.lock
+2025-08-13 10:41:05,511 - filelock - DEBUG - Attempting to release lock 139946308074912 on /home/runner/workspace/.cache/python-tldextract/3.12.11.final__vnvdzw4182wb2ifzi0cczhv80yfnpx1q-python3-3.12.11__381681__tldextract-5.3.0/publicsuffix.org-tlds/de84b5ca2167d4c83e38fb162f2e8738.tldextract.json.lock
+2025-08-13 10:41:05,511 - filelock - DEBUG - Lock 139946308074912 released on /home/runner/workspace/.cache/python-tldextract/3.12.11.final__vnvdzw4182wb2ifzi0cczhv80yfnpx1q-python3-3.12.11__381681__tldextract-5.3.0/publicsuffix.org-tlds/de84b5ca2167d4c83e38fb162f2e8738.tldextract.json.lock
+2025-08-13 10:41:07,338 - urllib3.connectionpool - DEBUG - Starting new HTTPS connection (1): www.pussyboy.net:443
+2025-08-13 10:41:07,369 - urllib3.connectionpool - DEBUG - https://www.pussyboy.net:443 "GET /thumb/teen-brunette-step-daughter-wants-step-dad-to-help-her-orgasm-taboo-sex-video.jpg HTTP/1.1" 200 16627
+2025-08-13 10:41:13,806 - plugins.youtube_dl_button - INFO - ['yt-dlp', '-c', '--max-filesize', '2097152000', '--embed-subs', '-f', '0', '--hls-prefer-ffmpeg', 'https://www.pussyboy.net/video/6972/teen-brunette-step-daughter-wants-step-dad-to-help-her-orgasm-taboo-sex-video/', '-o', './DOWNLOADS/6415368038/Teen Brunette Step Daughter Wants Step Dad To Help Her Orgasm Taboo Sex Video (1)_0.mp4', '--no-warnings']
+2025-08-13 10:41:15,449 - plugins.youtube_dl_button - INFO - 
+2025-08-13 10:41:15,449 - plugins.youtube_dl_button - INFO - [generic] Extracting URL: https://www.pussyboy.net/video/6972/teen-brunette-step-daughter-wants-step-dad-to-help-her-orgasm-taboo-sex-video/
+[generic] teen-brunette-step-daughter-wants-step-dad-to-help-her-orgasm-taboo-sex-video: Downloading webpage
+[generic] teen-brunette-step-daughter-wants-step-dad-to-help-her-orgasm-taboo-sex-video: Extracting information
+[info] teen-brunette-step-daughter-wants-step-dad-to-help-her-orgasm-taboo-sex-video-1: Downloading 1 format(s): 0
+[info] There are no subtitles for the requested languages
+[download] ./DOWNLOADS/6415368038/Teen Brunette Step Daughter Wants Step Dad To Help Her Orgasm Taboo Sex Video (1)_0.mp4 has already been downloaded
+[download] 100% of   13.80MiB
+[EmbedSubtitle] There aren't any subtitles to embed
+2025-08-13 10:41:15,449 - helper_funcs.help_Nekmo_ffmpeg - WARNING - ffmpeg not available, skipping screenshot generation
+2025-08-13 10:41:15,450 - plugins.youtube_dl_button - WARNING - Could not generate screenshots, proceeding without them
+2025-08-13 10:41:15,609 - pyrogram.dispatcher - ERROR - 'Message' object has no attribute 'message_id'
+Traceback (most recent call last):
+  File "/home/runner/workspace/.pythonlibs/lib/python3.12/site-packages/pyrogram/dispatcher.py", line 240, in handler_worker
+    await handler.callback(self.client, *args)
+  File "/home/runner/workspace/plugins/cb_buttons.py", line 124, in button
+    await youtube_dl_call_back(bot, update)
+  File "/home/runner/workspace/plugins/youtube_dl_button.py", line 315, in youtube_dl_call_back
+    reply_to_message_id=update.message.reply_to_message.message_id,
+                        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: 'Message' object has no attribute 'message_id'
+2025-08-13 10:41:27,551 - plugins.youtube_dl_echo - INFO - {
+    "_": "User",
+    "id": 6415368038,
+    "is_self": false,
+    "is_contact": false,
+    "is_mutual_contact": false,
+    "is_deleted": false,
+    "is_bot": false,
+    "is_verified": false,
+    "is_restricted": false,
+    "is_scam": false,
+    "is_fake": false,
+    "is_support": false,
+    "is_premium": false,
+    "first_name": "Jack",
+    "last_name": "Sparrow 🔥",
+    "status": "UserStatus.RECENTLY",
+    "username": "Pawsismyson",
+    "language_code": "en"
+}
+2025-08-13 10:41:33,127 - urllib3.connectionpool - DEBUG - Starting new HTTPS connection (1): i.ytimg.com:443
+2025-08-13 10:41:33,556 - urllib3.connectionpool - DEBUG - https://i.ytimg.com:443 "GET /vi_webp/GZvrGLFYWH0/maxresdefault.webp HTTP/1.1" 200 170316
+2025-08-13 10:41:33,733 - PIL.Image - DEBUG - Importing AvifImagePlugin
+2025-08-13 10:41:33,734 - PIL.Image - DEBUG - Importing BlpImagePlugin
+2025-08-13 10:41:33,735 - PIL.Image - DEBUG - Importing BmpImagePlugin
+2025-08-13 10:41:33,735 - PIL.Image - DEBUG - Importing BufrStubImagePlugin
+2025-08-13 10:41:33,735 - PIL.Image - DEBUG - Importing CurImagePlugin
+2025-08-13 10:41:33,735 - PIL.Image - DEBUG - Importing DcxImagePlugin
+2025-08-13 10:41:33,736 - PIL.Image - DEBUG - Importing DdsImagePlugin
+2025-08-13 10:41:33,741 - PIL.Image - DEBUG - Importing EpsImagePlugin
+2025-08-13 10:41:33,742 - PIL.Image - DEBUG - Importing FitsImagePlugin
+2025-08-13 10:41:33,742 - PIL.Image - DEBUG - Importing FliImagePlugin
+2025-08-13 10:41:33,743 - PIL.Image - DEBUG - Importing FpxImagePlugin
+2025-08-13 10:41:33,744 - PIL.Image - DEBUG - Importing FtexImagePlugin
+2025-08-13 10:41:33,744 - PIL.Image - DEBUG - Importing GbrImagePlugin
+2025-08-13 10:41:33,745 - PIL.Image - DEBUG - Importing GifImagePlugin
+2025-08-13 10:41:33,745 - PIL.Image - DEBUG - Importing GribStubImagePlugin
+2025-08-13 10:41:33,745 - PIL.Image - DEBUG - Importing Hdf5StubImagePlugin
+2025-08-13 10:41:33,745 - PIL.Image - DEBUG - Importing IcnsImagePlugin
+2025-08-13 10:41:33,746 - PIL.Image - DEBUG - Importing IcoImagePlugin
+2025-08-13 10:41:33,747 - PIL.Image - DEBUG - Importing ImImagePlugin
+2025-08-13 10:41:33,748 - PIL.Image - DEBUG - Importing ImtImagePlugin
+2025-08-13 10:41:33,748 - PIL.Image - DEBUG - Importing IptcImagePlugin
+2025-08-13 10:41:33,749 - PIL.Image - DEBUG - Importing JpegImagePlugin
+2025-08-13 10:41:33,749 - PIL.Image - DEBUG - Importing Jpeg2KImagePlugin
+2025-08-13 10:41:33,749 - PIL.Image - DEBUG - Importing McIdasImagePlugin
+2025-08-13 10:41:33,749 - PIL.Image - DEBUG - Importing MicImagePlugin
+2025-08-13 10:41:33,753 - PIL.Image - DEBUG - Importing MpegImagePlugin
+2025-08-13 10:41:33,753 - PIL.Image - DEBUG - Importing MpoImagePlugin
+2025-08-13 10:41:33,754 - PIL.Image - DEBUG - Importing MspImagePlugin
+2025-08-13 10:41:33,754 - PIL.Image - DEBUG - Importing PalmImagePlugin
+2025-08-13 10:41:33,754 - PIL.Image - DEBUG - Importing PcdImagePlugin
+2025-08-13 10:41:33,755 - PIL.Image - DEBUG - Importing PcxImagePlugin
+2025-08-13 10:41:33,755 - PIL.Image - DEBUG - Importing PdfImagePlugin
+2025-08-13 10:41:33,760 - PIL.Image - DEBUG - Importing PixarImagePlugin
+2025-08-13 10:41:33,760 - PIL.Image - DEBUG - Importing PngImagePlugin
+2025-08-13 10:41:33,761 - PIL.Image - DEBUG - Importing PpmImagePlugin
+2025-08-13 10:41:33,761 - PIL.Image - DEBUG - Importing PsdImagePlugin
+2025-08-13 10:41:33,761 - PIL.Image - DEBUG - Importing QoiImagePlugin
+2025-08-13 10:41:33,761 - PIL.Image - DEBUG - Importing SgiImagePlugin
+2025-08-13 10:41:33,761 - PIL.Image - DEBUG - Importing SpiderImagePlugin
+2025-08-13 10:41:33,762 - PIL.Image - DEBUG - Importing SunImagePlugin
+2025-08-13 10:41:33,762 - PIL.Image - DEBUG - Importing TgaImagePlugin
+2025-08-13 10:41:33,762 - PIL.Image - DEBUG - Importing TiffImagePlugin
+2025-08-13 10:41:33,762 - PIL.Image - DEBUG - Importing WebPImagePlugin
+2025-08-13 10:41:33,763 - PIL.Image - DEBUG - Importing WmfImagePlugin
+2025-08-13 10:41:33,763 - PIL.Image - DEBUG - Importing XbmImagePlugin
+2025-08-13 10:41:33,764 - PIL.Image - DEBUG - Importing XpmImagePlugin
+2025-08-13 10:41:33,765 - PIL.Image - DEBUG - Importing XVThumbImagePlugin
+2025-08-13 10:41:55,517 - plugins.youtube_dl_button - INFO - ['yt-dlp', '-c', '--max-filesize', '2097152000', '--embed-subs', '-f', '160+bestaudio', '--hls-prefer-ffmpeg', 'https://youtu.be/GZvrGLFYWH0?si=8Q1DJ248kqcIP7Pj', '-o', './DOWNLOADS/6415368038/Narabhakshaka | Werewolf Castle Official Kannada Full Movie | Latest Sandalwood 2023 Action Film_160.mp4', '--no-warnings']
+2025-08-13 10:42:00,973 - plugins.youtube_dl_button - INFO - 
+2025-08-13 10:42:00,973 - plugins.youtube_dl_button - INFO - [youtube] Extracting URL: https://youtu.be/GZvrGLFYWH0?si=8Q1DJ248kqcIP7Pj
+[youtube] GZvrGLFYWH0: Downloading webpage
+[youtube] GZvrGLFYWH0: Downloading tv client config
+[youtube] GZvrGLFYWH0: Downloading tv player API JSON
+[youtube] GZvrGLFYWH0: Downloading ios player API JSON
+[youtube] GZvrGLFYWH0: Downloading m3u8 information
+[info] GZvrGLFYWH0: Downloading 1 format(s): 160+251
+[info] There are no subtitles for the requested languages
+[download] ./DOWNLOADS/6415368038/Narabhakshaka | Werewolf Castle Official Kannada Full Movie | Latest Sandalwood 2023 Action Film_160.mp4.f160.mp4 has already been downloaded
+[download] 100% of   23.78MiB
+[download] ./DOWNLOADS/6415368038/Narabhakshaka | Werewolf Castle Official Kannada Full Movie | Latest Sandalwood 2023 Action Film_160.mp4.f251.webm has already been downloaded
+[download] 100% of   86.77MiB
+[EmbedSubtitle] There aren't any subtitles to embed
+2025-08-13 10:42:00,973 - pyrogram.dispatcher - ERROR - [Errno 2] No such file or directory: './DOWNLOADS/6415368038/Narabhakshaka | Werewolf Castle Official Kannada Full Movie | Latest Sandalwood 2023 Action Film_160.mkv'
+Traceback (most recent call last):
+  File "/home/runner/workspace/plugins/youtube_dl_button.py", line 183, in youtube_dl_call_back
+    file_size = os.stat(download_directory).st_size
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+FileNotFoundError: [Errno 2] No such file or directory: './DOWNLOADS/6415368038/Narabhakshaka | Werewolf Castle Official Kannada Full Movie | Latest Sandalwood 2023 Action Film_160.mp4'
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/home/runner/workspace/.pythonlibs/lib/python3.12/site-packages/pyrogram/dispatcher.py", line 240, in handler_worker
+    await handler.callback(self.client, *args)
+  File "/home/runner/workspace/plugins/cb_buttons.py", line 124, in button
+    await youtube_dl_call_back(bot, update)
+  File "/home/runner/workspace/plugins/youtube_dl_button.py", line 187, in youtube_dl_call_back
+    file_size = os.stat(download_directory).st_size
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+FileNotFoundError: [Errno 2] No such file or directory: './DOWNLOADS/6415368038/Narabhakshaka | Werewolf Castle Official Kannada Full Movie | Latest Sandalwood 2023 Action Film_160.mkv'
