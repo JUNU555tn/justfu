@@ -640,7 +640,8 @@ class EnhancedDownloadDetector:
                 filepath = os.path.join(download_dir, filename)
                 
                 await self.send_live_log(bot, chat_id, f"📁 Downloading to: {filename}")
-                await self.send_live_log(bot, chat_id, f"📊 File size: {content_length} bytes")
+                if content_length > 0:
+                    await self.send_live_log(bot, chat_id, f"📊 File size: {self.humanbytes(content_length)}")
                 
                 # Download with progress
                 with requests.get(download_url, headers=headers, stream=True, timeout=60) as r:
@@ -654,8 +655,11 @@ class EnhancedDownloadDetector:
                                 
                                 # Update progress every 1MB
                                 if downloaded % (1024*1024) == 0:
-                                    progress = (downloaded / content_length * 100) if content_length > 0 else 0
-                                    await self.send_live_log(bot, chat_id, f"📥 Downloaded: {progress:.1f}% ({downloaded} bytes)")
+                                    if content_length > 0:
+                                        progress = (downloaded / content_length * 100)
+                                        await self.send_live_log(bot, chat_id, f"📥 Downloaded: {progress:.1f}% ({self.humanbytes(downloaded)}/{self.humanbytes(content_length)})")
+                                    else:
+                                        await self.send_live_log(bot, chat_id, f"📥 Downloaded: {self.humanbytes(downloaded)}")
                 
                 await self.send_live_log(bot, chat_id, f"✅ Download completed: {filepath}")
                 return filepath
@@ -666,6 +670,55 @@ class EnhancedDownloadDetector:
         except Exception as e:
             await self.send_live_log(bot, chat_id, f"❌ Download error: {str(e)}")
             return None
+
+    def humanbytes(self, size):
+        """Convert bytes to human readable format"""
+        if not size:
+            return "0 B"
+
+        power = 1024
+        n = 0
+        power_labels = {0: '', 1: 'K', 2: 'M', 3: 'G', 4: 'T'}
+
+        while size > power:
+            size /= power
+            n += 1
+
+        return f"{size:.1f} {power_labels[n]}B"
+
+    async def direct_cdn_download(self, cdn_urls: list, bot: Client, chat_id: int, user_id: int):
+        """Directly download from CDN URLs without yt-dlp"""
+        for i, cdn_url in enumerate(cdn_urls, 1):
+            try:
+                await self.send_live_log(bot, chat_id, f"📥 Direct CDN download {i}/{len(cdn_urls)}: {cdn_url[:60]}...")
+                
+                filepath = await self.human_download_file(cdn_url, bot, chat_id, user_id)
+                
+                if filepath and os.path.exists(filepath):
+                    await self.send_live_log(bot, chat_id, "✅ CDN download successful! Uploading to Telegram...")
+                    
+                    # Upload the downloaded file
+                    await bot.send_video(
+                        chat_id=chat_id,
+                        video=filepath,
+                        caption="✅ **Direct CDN Download Complete!**\n\nDownloaded without yt-dlp using human-like method",
+                        reply_to_message_id=None
+                    )
+                    
+                    # Clean up
+                    try:
+                        os.remove(filepath)
+                    except:
+                        pass
+                    
+                    return True
+                else:
+                    await self.send_live_log(bot, chat_id, f"❌ CDN download {i} failed")
+                    
+            except Exception as e:
+                await self.send_live_log(bot, chat_id, f"❌ CDN download {i} error: {str(e)}")
+                
+        return False
 
     async def follow_get_file_redirects(self, get_file_urls: list, bot: Client, chat_id: int):
         """Follow get_file URLs to find final CDN video URLs"""

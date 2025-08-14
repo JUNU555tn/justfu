@@ -460,12 +460,12 @@ async def echo(bot: Client, update: Message):
                         reply_to_message_id=update.id
                     )
 
-                    # Try each detected URL with yt-dlp until one works
+                    # Try each detected URL - use direct download for CDN URLs, yt-dlp for others
                     download_successful = False
 
                     for i, detected_url in enumerate(ordered_urls, 1):
                         url_type = "CDN" if 'cdn.' in detected_url else ("get_file" if 'get_file' in detected_url else "other")
-                        logger.info(f"Trying detected URL {i}/{len(ordered_urls)} ({url_type}) with yt-dlp: {detected_url}")
+                        logger.info(f"Trying detected URL {i}/{len(ordered_urls)} ({url_type}): {detected_url}")
 
                         status_msg = await bot.send_message(
                             chat_id=update.chat.id,
@@ -473,57 +473,95 @@ async def echo(bot: Client, update: Message):
                             reply_to_message_id=update.id
                         )
 
-                        # Create user-specific download directory with proper filename
-                        user_download_dir = Config.DOWNLOAD_LOCATION + "/" + str(update.from_user.id)
-                        os.makedirs(user_download_dir, exist_ok=True)
-                        
-                        # Generate a unique filename for this download
-                        filename = f"video_{int(time.time())}_%(title)s.%(ext)s"
-                        download_path = os.path.join(user_download_dir, filename)
-
-                        command_to_exec = [
-                            "yt-dlp",
-                            "-f", "best[ext=mp4]/best",
-                            "--merge-output-format", "mp4",
-                            "--no-check-certificate",
-                            "--user-agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
-                            detected_url,
-                            "-o", download_path
-                        ]
-
-                        if Config.HTTP_PROXY != "":
-                            command_to_exec.append("--proxy")
-                            command_to_exec.append(Config.HTTP_PROXY)
-
-                        try:
-                            process = await asyncio.create_subprocess_exec(
-                                *command_to_exec,
-                                stdout=asyncio.subprocess.PIPE,
-                                stderr=asyncio.subprocess.STDOUT
-                            )
-
-                            stdout, _ = await process.communicate()
-
-                            if process.returncode == 0:
-                                # Success with detected URL
-                                logger.info(f"Human-clicked download successful with URL {i}")
-                                try:
-                                    await status_msg.edit_text(f"✅ Human-like download successful! Processing file...")
-                                except Exception as edit_error:
-                                    # If edit fails, send new message
-                                    await bot.send_message(
+                        # For CDN URLs, use direct download (like manual method)
+                        if 'cdn.' in detected_url and any(ext in detected_url.lower() for ext in ['.mp4', '.mkv', '.webm', '.avi', '.m4v']):
+                            await status_msg.edit_text(f"📥 Direct download from CDN...")
+                            
+                            try:
+                                from plugins.manual_download_helper import manual_helper
+                                filepath = await manual_helper.download_from_new_tab_url(
+                                    detected_url, bot, update.chat.id, update.from_user.id
+                                )
+                                
+                                if filepath and os.path.exists(filepath):
+                                    await status_msg.edit_text("✅ CDN download successful! Uploading...")
+                                    
+                                    # Upload the downloaded file
+                                    await bot.send_video(
                                         chat_id=update.chat.id,
-                                        text=f"✅ Human-like download successful! Processing file...",
+                                        video=filepath,
+                                        caption="✅ **Direct CDN Download Complete!**\n\nDownloaded from detected CDN URL",
                                         reply_to_message_id=update.id
                                     )
-                                download_successful = True
-                                break
-                            else:
-                                logger.warning(f"URL {i} failed: {stdout.decode()}")
+                                    
+                                    # Clean up
+                                    try:
+                                        os.remove(filepath)
+                                    except:
+                                        pass
+                                    
+                                    download_successful = True
+                                    break
+                                else:
+                                    logger.warning(f"CDN direct download failed for URL {i}")
+                                    
+                            except Exception as cdn_error:
+                                logger.error(f"CDN download error for URL {i}: {cdn_error}")
+                                continue
+                        
+                        else:
+                            # For non-CDN URLs, try yt-dlp
+                            # Create user-specific download directory with proper filename
+                            user_download_dir = Config.DOWNLOAD_LOCATION + "/" + str(update.from_user.id)
+                            os.makedirs(user_download_dir, exist_ok=True)
+                            
+                            # Generate a unique filename for this download
+                            filename = f"video_{int(time.time())}_%(title)s.%(ext)s"
+                            download_path = os.path.join(user_download_dir, filename)
 
-                        except Exception as url_error:
-                            logger.error(f"Error with URL {i}: {url_error}")
-                            continue
+                            command_to_exec = [
+                                "yt-dlp",
+                                "-f", "best[ext=mp4]/best",
+                                "--merge-output-format", "mp4",
+                                "--no-check-certificate",
+                                "--user-agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
+                                detected_url,
+                                "-o", download_path
+                            ]
+
+                            if Config.HTTP_PROXY != "":
+                                command_to_exec.append("--proxy")
+                                command_to_exec.append(Config.HTTP_PROXY)
+
+                            try:
+                                process = await asyncio.create_subprocess_exec(
+                                    *command_to_exec,
+                                    stdout=asyncio.subprocess.PIPE,
+                                    stderr=asyncio.subprocess.STDOUT
+                                )
+
+                                stdout, _ = await process.communicate()
+
+                                if process.returncode == 0:
+                                    # Success with detected URL
+                                    logger.info(f"yt-dlp download successful with URL {i}")
+                                    try:
+                                        await status_msg.edit_text(f"✅ yt-dlp download successful! Processing file...")
+                                    except Exception as edit_error:
+                                        # If edit fails, send new message
+                                        await bot.send_message(
+                                            chat_id=update.chat.id,
+                                            text=f"✅ yt-dlp download successful! Processing file...",
+                                            reply_to_message_id=update.id
+                                        )
+                                    download_successful = True
+                                    break
+                                else:
+                                    logger.warning(f"yt-dlp failed for URL {i}: {stdout.decode()}")
+
+                            except Exception as url_error:
+                                logger.error(f"yt-dlp error for URL {i}: {url_error}")
+                                continue
 
                     if not download_successful:
                         # All detected URLs failed, show them for manual use
