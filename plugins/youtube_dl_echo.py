@@ -23,7 +23,7 @@ import pyrogram
 from pyrogram import filters
 from pyrogram.types import InlineKeyboardButton, InlineKeyboardMarkup
 
-from plugins.auto_download_detector import AutoDownloadDetector
+from plugins.auto_download_detector import EnhancedDownloadDetector, AutoDownloadDetector
 from plugins.manual_download_helper import manual_helper
 
 logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
@@ -134,9 +134,9 @@ async def echo(bot, update):
         unified_display.status = "Detecting"
         await update_progress_message(bot, update.from_user.id, "🔍 Starting detection...")
         
-        # Try auto-detection first
-        auto_detector = AutoDownloadDetector()
-        unified_display.current_method = "AutoDetect"
+        # Try enhanced detection first
+        enhanced_detector = EnhancedDownloadDetector()
+        unified_display.current_method = "Enhanced"
         
         # Simulate detection progress
         for i in range(3):
@@ -144,8 +144,8 @@ async def echo(bot, update):
             await update_progress_message(bot, update.from_user.id, f"🔄 Detection method {i+1}/3...")
             await asyncio.sleep(1)
         
-        # Try auto download
-        result = await auto_detector.detect_and_download(url, bot, update.chat.id, update.from_user.id)
+        # Try comprehensive detection
+        video_urls, downloaded_files = await enhanced_detector.comprehensive_video_detection(url, bot, update.chat.id)
         
         if result:
             unified_display.current_method = "AutoDownload"

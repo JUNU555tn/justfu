@@ -872,6 +872,28 @@ class EnhancedDownloadDetector:
 # Initialize the detector
 enhanced_detector = EnhancedDownloadDetector()
 
+# Add alias for backward compatibility
+class AutoDownloadDetector:
+    def __init__(self):
+        self.enhanced_detector = EnhancedDownloadDetector()
+    
+    async def detect_and_download(self, url: str, bot, chat_id: int, user_id: int):
+        """Wrapper method for backward compatibility"""
+        try:
+            video_urls, downloaded_files = await self.enhanced_detector.comprehensive_video_detection(url, bot, chat_id)
+            
+            if video_urls:
+                # Try to download the first video URL found
+                best_url = video_urls[0]
+                filepath = await self.enhanced_detector.human_download_file(best_url, bot, chat_id, user_id)
+                
+                if filepath:
+                    return True
+            return False
+        except Exception as e:
+            logger.error(f"AutoDownloadDetector error: {e}")
+            return False
+
 @pyrogram.Client.on_message(pyrogram.filters.regex(pattern=".*auto.*detect.*"))
 async def auto_detect_handler(bot: Client, update: Message):
     """Handler for auto detection and download command"""
