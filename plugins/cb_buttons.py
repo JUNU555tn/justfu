@@ -123,4 +123,15 @@ async def button(bot, update):
         elif "|" in cb_data:
             await youtube_dl_call_back(bot, update)
         elif "=" in cb_data or cb_data.startswith("ddl|"):
+            # Check if we need to handle redirects first
+            if "|redirect|" in cb_data:
+                url = update.message.reply_to_message.text
+                redirect_url = await redirect_handler.detect_and_handle_redirects(url, bot, update.message.chat.id)
+                if redirect_url:
+                    # Update the original message with the redirect URL
+                    await bot.edit_message_text(
+                        chat_id=update.message.chat.id,
+                        message_id=update.message.reply_to_message.id,
+                        text=redirect_url
+                    )
             await ddl_call_back(bot, update)

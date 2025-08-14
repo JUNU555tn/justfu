@@ -305,6 +305,7 @@ async def create_format_buttons(bot, update, response_json):
                 ext = fmt.get('ext', 'mp4')
                 format_id = fmt.get('format_id')
                 fps = fmt.get('fps', '')
+                tbr = fmt.get('tbr', 0)
                 
                 video_formats.append({
                     'quality': quality,
@@ -312,7 +313,8 @@ async def create_format_buttons(bot, update, response_json):
                     'format_id': format_id,
                     'filesize': filesize,
                     'height': fmt.get('height', 0),
-                    'fps': fps
+                    'fps': fps,
+                    'tbr': tbr
                 })
             elif fmt.get('acodec') != 'none' and fmt.get('vcodec') == 'none':
                 # Audio format
@@ -325,7 +327,8 @@ async def create_format_buttons(bot, update, response_json):
                     'quality': quality,
                     'ext': ext,
                     'format_id': format_id,
-                    'filesize': filesize
+                    'filesize': filesize,
+                    'abr': abr
                 })
         
         # Sort video formats by quality (height)
@@ -343,42 +346,46 @@ async def create_format_buttons(bot, update, response_json):
         # Create buttons
         buttons = []
         
-        # Add video format buttons with quality and size
-        for fmt in unique_video_formats[:6]:  # Limit to 6 video formats to reduce data
-            size_text = humanbytes(fmt['filesize']) if fmt['filesize'] else "?"
-            fps_text = f"{fmt['fps']}fps " if fmt['fps'] else ""
-            button_text = f"📹 {fmt['quality']} {fps_text}/ {size_text}"
-            # Shorten callback data to avoid BUTTON_DATA_INVALID error
-            callback_data = f"video|{fmt['format_id']}|{fmt['ext']}"[:64]  # Telegram limit
+        # Add comprehensive format display with detailed info
+        for fmt in unique_video_formats[:8]:  # Show more formats
+            size_text = humanbytes(fmt['filesize']) if fmt['filesize'] else "~"
+            fps_text = f" {fmt['fps']}fps" if fmt['fps'] else ""
+            tbr_text = f" {int(fmt['tbr'])}kbps" if fmt['tbr'] else ""
+            button_text = f"📹 {fmt['quality']}{fps_text} • {size_text}{tbr_text}"
+            callback_data = f"video|{fmt['format_id']}|{fmt['ext']}"[:64]
             buttons.append([InlineKeyboardButton(button_text, callback_data=callback_data)])
         
-        # Add audio format buttons with bitrate and size
+        # Add audio format buttons
         if audio_formats:
-            # Sort by bitrate/quality
-            audio_formats.sort(key=lambda x: x.get('filesize', 0), reverse=True)
-            best_audio = audio_formats[0]
-            size_text = humanbytes(best_audio['filesize']) if best_audio['filesize'] else "?"
-            button_text = f"🎵 {best_audio['quality']} / {size_text}"
-            # Shorten callback data
-            callback_data = f"audio|{best_audio['format_id']}|{best_audio['ext']}"[:64]
-            buttons.append([InlineKeyboardButton(button_text, callback_data=callback_data)])
+            audio_formats.sort(key=lambda x: x.get('abr', 0), reverse=True)
+            for audio_fmt in audio_formats[:2]:  # Show top 2 audio formats
+                size_text = humanbytes(audio_fmt['filesize']) if audio_fmt['filesize'] else "~"
+                button_text = f"🎵 {audio_fmt['quality']} • {size_text}"
+                callback_data = f"audio|{audio_fmt['format_id']}|{audio_fmt['ext']}"[:64]
+                buttons.append([InlineKeyboardButton(button_text, callback_data=callback_data)])
         
-        # Add file download option
-        buttons.append([InlineKeyboardButton("📁 Best Quality File", callback_data="file|best|mp4")])
+        # Add direct download options
+        buttons.append([
+            InlineKeyboardButton("📁 Best Quality File", callback_data="file|best|mp4"),
+            InlineKeyboardButton("🤖 Auto Download", callback_data="video|best|mp4")
+        ])
         
-        # Add fallback options for generic sites
-        buttons.append([InlineKeyboardButton("🎬 Generic Video", callback_data="video|best|mp4")])
-        buttons.append([InlineKeyboardButton("📱 Mobile Quality", callback_data="video|worst|mp4")])
+        # Add auto-click and redirect handling options
+        buttons.append([
+            InlineKeyboardButton("🌐 Auto-Click Download", callback_data="ddl|auto|mp4"),
+            InlineKeyboardButton("🔄 Follow Redirects", callback_data="ddl|redirect|mp4")
+        ])
         
         # Calculate video info for display
         title = response_json.get('title', 'Video')
         uploader = response_json.get('uploader', 'Unknown')
         duration_str = f"{int(duration//60)}:{int(duration%60):02d}" if duration else "Unknown"
         
-        # Send format selection message
+        # Enhanced format info display
         info_text = f"🎬 **{title}**\n"
         info_text += f"👤 **Uploader:** {uploader}\n"
-        info_text += f"⏱️ **Duration:** {duration_str}\n\n"
+        info_text += f"⏱️ **Duration:** {duration_str}\n"
+        info_text += f"📊 **Available Formats:** {len(unique_video_formats)} video, {len(audio_formats)} audio\n\n"
         info_text += "📥 **Select download quality:**"
         
         await bot.send_message(

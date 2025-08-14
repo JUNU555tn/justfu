@@ -92,7 +92,7 @@ class AutoDownloadHandler:
             driver.get(url)
             time.sleep(3)
 
-            # Look for download buttons with expanded selectors
+            # Enhanced selectors for desitales2.com and similar sites
             download_selectors = [
                 "a[href*='download']",
                 "button[class*='download']",
@@ -106,10 +106,19 @@ class AutoDownloadHandler:
                 "[data-download]",
                 "a[title*='download' i]",
                 "button[title*='download' i]",
-                "a[href*='get_file']",  # Added for sites like desitales2
-                "a[href*='cdn.']",      # Added for CDN links
+                "a[href*='get_file']",  # desitales2.com pattern
+                "a[href*='cdn.']",      # CDN links
                 "button[id*='download']",
-                "input[type='button'][value*='download' i]"
+                "input[type='button'][value*='download' i]",
+                ".video-download",
+                ".dl-link",
+                "a[href*='.mp4']",      # Direct video links
+                "a[href*='.mkv']",
+                "a[href*='.webm']",
+                "a[href*='.avi']",
+                "a[href*='.m4v']",
+                ".play-btn[onclick*='download']",
+                ".play-button[onclick*='download']"
             ]
 
             download_button = None
@@ -169,19 +178,34 @@ class AutoDownloadHandler:
                     
                     for window in new_windows:
                         driver.switch_to.window(window)
-                        time.sleep(3)  # Wait for tab to fully load
+                        time.sleep(5)  # Wait longer for redirects to complete
                         
                         new_url = driver.current_url
                         await self.send_live_log(bot, chat_id, f"🔗 New tab URL: {new_url[:60]}...")
                         
-                        # Check if it's a direct video file URL (like cdn.es2.com/2000/2114/2114.mp4)
+                        # Handle desitales2.com specific redirect pattern
+                        if 'get_file' in new_url and 'desitales2.com' in new_url:
+                            await self.send_live_log(bot, chat_id, "🎯 Detected desitales2.com get_file URL, following redirect...")
+                            
+                            # Wait for automatic redirect to CDN
+                            for i in range(10):  # Wait up to 10 seconds
+                                time.sleep(1)
+                                current_redirect_url = driver.current_url
+                                if 'cdn.' in current_redirect_url and '.mp4' in current_redirect_url:
+                                    await self.send_live_log(bot, chat_id, f"✅ Found CDN redirect: {current_redirect_url}")
+                                    return current_redirect_url
+                                elif current_redirect_url != new_url:
+                                    new_url = current_redirect_url
+                                    await self.send_live_log(bot, chat_id, f"🔄 Redirect to: {new_url[:60]}...")
+                        
+                        # Check if it's a direct video file URL
                         if any(ext in new_url.lower() for ext in ['.mp4', '.mkv', '.webm', '.avi', '.m4v', '.flv']):
-                            await self.send_live_log(bot, chat_id, f"✅ Found direct MP4 URL: {new_url}")
+                            await self.send_live_log(bot, chat_id, f"✅ Found direct video URL: {new_url}")
                             return new_url
                         
                         # Check for CDN patterns
-                        if 'cdn.' in new_url.lower() and any(pattern in new_url.lower() for pattern in ['video', 'media', 'stream']):
-                            await self.send_live_log(bot, chat_id, f"✅ Found CDN video URL: {new_url}")
+                        if 'cdn.' in new_url.lower():
+                            await self.send_live_log(bot, chat_id, f"✅ Found CDN URL: {new_url}")
                             return new_url
                         
                         # Use developer tools to find video elements
@@ -193,6 +217,24 @@ class AutoDownloadHandler:
                         final_url = await self.extract_download_url_from_page(driver, bot, chat_id)
                         if final_url:
                             return final_url
+                        
+                        # Check page source for redirected URLs
+                        page_source = driver.page_source
+                        import re
+                        cdn_patterns = [
+                            r'https?://cdn\.[^"\'<>\s]+\.mp4[^"\'<>\s]*',
+                            r'https?://[^"\'<>\s]*cdn[^"\'<>\s]*\.mp4[^"\'<>\s]*',
+                            r'"(https?://[^"]*\.mp4[^"]*)"'
+                        ]
+                        
+                        for pattern in cdn_patterns:
+                            matches = re.findall(pattern, page_source, re.IGNORECASE)
+                            for match in matches:
+                                if isinstance(match, tuple):
+                                    match = match[0]
+                                if match.startswith('http') and '.mp4' in match:
+                                    await self.send_live_log(bot, chat_id, f"✅ Found video URL in source: {match}")
+                                    return match
                     
                     # Switch back to original window
                     if original_window in driver.window_handles:

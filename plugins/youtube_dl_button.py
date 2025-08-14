@@ -567,6 +567,7 @@ async def youtube_dl_call_back(bot, update):
                     )
                 )
             elif tg_send_type == "video":
+                # Ensure all video files are uploaded as video format
                 await bot.send_video(
                     chat_id=update.message.chat.id,
                     video=download_directory,
@@ -577,6 +578,26 @@ async def youtube_dl_call_back(bot, update):
                     height=height,
                     supports_streaming=True,
                     # reply_markup=reply_markup,
+                    thumb=thumb_image_path,
+                    reply_to_message_id=update.message.reply_to_message.id,
+                    progress=progress_for_pyrogram,
+                    progress_args=(
+                        Translation.UPLOAD_START,
+                        update.message,
+                        start_time
+                    )
+                )
+            elif tg_send_type == "file" and any(ext in download_directory.lower() for ext in ['.mp4', '.mkv', '.webm', '.avi', '.m4v']):
+                # Force video files to be uploaded as video even if requested as file
+                await bot.send_video(
+                    chat_id=update.message.chat.id,
+                    video=download_directory,
+                    caption=description + "\n\n📹 **Auto-converted to video format**",
+                    parse_mode=enums.ParseMode.HTML,
+                    duration=duration,
+                    width=width,
+                    height=height,
+                    supports_streaming=True,
                     thumb=thumb_image_path,
                     reply_to_message_id=update.message.reply_to_message.id,
                     progress=progress_for_pyrogram,
