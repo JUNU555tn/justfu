@@ -1,0 +1,28 @@
+2025-08-14 11:30:38,350 - pyrogram.crypto.aes - INFO - Using TgCrypto
+2025-08-14 11:30:38,457 - asyncio - DEBUG - Using selector: EpollSelector
+2025-08-14 11:30:38,587 - __main__ - INFO - Starting bot application...
+ * Serving Flask app 'web_server'
+ * Debug mode: off
+2025-08-14 11:30:38,648 - werkzeug - INFO - WARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:5000
+ * Running on http://172.31.65.194:5000
+2025-08-14 11:30:38,648 - werkzeug - INFO - Press CTRL+C to quit
+2025-08-14 11:30:40,595 - werkzeug - INFO - 172.31.65.194 - - [14/Aug/2025 11:30:40] "GET / HTTP/1.1" 200 -
+2025-08-14 11:31:07,860 - plugins.youtube_dl_button - INFO - ['yt-dlp', '-c', '--max-filesize', '2097152000', '--embed-subs', '-f', '232+bestaudio', '--hls-prefer-ffmpeg', '--merge-output-format', 'mp4', 'https://youtu.be/sYVO2Vy0F2I', '-o', './DOWNLOADS/6415368038/Torch Light Kannada Dubbed Movie_232.mp4', '--no-warnings']
+2025-08-14 11:31:08,980 - plugins.youtube_dl_button - INFO - [youtube] Extracting URL: https://youtu.be/sYVO2Vy0F2I
+2025-08-14 11:31:08,981 - plugins.youtube_dl_button - INFO - [youtube] sYVO2Vy0F2I: Downloading webpage
+2025-08-14 11:31:10,255 - plugins.youtube_dl_button - INFO - [youtube] sYVO2Vy0F2I: Downloading tv client config
+2025-08-14 11:31:10,469 - plugins.youtube_dl_button - INFO - [youtube] sYVO2Vy0F2I: Downloading player 6b03aad7-main
+2025-08-14 11:31:11,080 - plugins.youtube_dl_button - INFO - [youtube] sYVO2Vy0F2I: Downloading tv player API JSON
+2025-08-14 11:31:11,495 - plugins.youtube_dl_button - INFO - [youtube] sYVO2Vy0F2I: Downloading ios player API JSON
+2025-08-14 11:31:17,692 - plugins.youtube_dl_button - INFO - [youtube] sYVO2Vy0F2I: Downloading m3u8 information
+2025-08-14 11:31:18,334 - plugins.youtube_dl_button - INFO - [info] Testing format 232
+2025-08-14 11:31:18,629 - plugins.youtube_dl_button - INFO - [info] sYVO2Vy0F2I: Downloading 1 format(s): 232+251
+2025-08-14 11:31:18,651 - plugins.youtube_dl_button - INFO - [info] There are no subtitles for the requested languages
+2025-08-14 11:31:18,672 - plugins.youtube_dl_button - INFO - [download] Destination: ./DOWNLOADS/6415368038/Torch Light Kannada Dubbed Movie_232.f232.mp4
+2025-08-14 11:31:18,673 - plugins.youtube_dl_button - INFO - ERROR: m3u8 download detected but ffmpeg could not be found. Please install
+2025-08-14 11:31:18,677 - plugins.youtube_dl_button - INFO - ERROR: Unable to download video: [Errno 2] No such file or directory: './DOWNLOADS/6415368038/Torch Light Kannada Dubbed Movie_232.f232.mp4.part'
+2025-08-14 11:31:18,778 - helper_funcs.help_Nekmo_ffmpeg - WARNING - ffmpeg not available, skipping screenshot generation
+2025-08-14 11:31:18,778 - plugins.youtube_dl_button - WARNING - Could not generate screenshots, proceeding without them
+2025-08-14 11:31:44,083 - plugins.auto_download_detector - DEBUG - Failed to analyze iframe https://df.commonvisitor.site/api/spots/471023?p=1&s1=DT: HTTPSConnectionPool(host='df.commonvisitor.site', port=443): Max retries exceeded with url: /api/spots/471023?p=1&s1=DT (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x7f84d8131b80>: Failed to resolve 'df.commonvisitor.site' ([Errno -2] Name or service not known)"))
