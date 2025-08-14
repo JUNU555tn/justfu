@@ -193,32 +193,61 @@ async def handle_direct_video_download(bot, update, url):
     progress_messages[update.from_user.id] = progress_msg
     
     try:
+        # Check if URL is already a direct video link
+        if any(ext in url.lower() for ext in ['.mp4', '.mkv', '.webm', '.avi', '.m4v']):
+            # Direct video URL - download immediately
+            unified_display.current_method = "Direct"
+            unified_display.status = "Downloading"
+            await update_progress_message_safe(bot, update.from_user.id, "⬇️ Direct video URL detected, downloading...")
+            
+            enhanced_detector = EnhancedDownloadDetector()
+            filepath = await enhanced_detector.human_download_file(url, bot, update.chat.id, update.from_user.id)
+            
+            if filepath and os.path.exists(filepath):
+                unified_display.status = "Uploading"
+                await update_progress_message_safe(bot, update.from_user.id, "📤 Uploading to Telegram...")
+                
+                # Upload to Telegram
+                await bot.send_video(
+                    chat_id=update.chat.id,
+                    video=filepath,
+                    caption="✅ **Direct Video Download Complete!**\n\nDownloaded from direct video URL",
+                    reply_to_message_id=update.id
+                )
+                
+                # Clean up
+                try:
+                    os.remove(filepath)
+                except:
+                    pass
+                
+                await progress_msg.edit_text("✅ Video downloaded and uploaded successfully!")
+                return
+            else:
+                await progress_msg.edit_text("❌ Failed to download from direct video URL")
+                return
+        
         # Update status to detection
         unified_display.current_method = "Enhanced"
         unified_display.status = "Detecting"
         await update_progress_message_safe(bot, update.from_user.id, "🔍 Starting enhanced detection...")
         
-        # Try enhanced detection (without Chrome since it's not available)
+        # Try enhanced detection for non-direct URLs
         enhanced_detector = EnhancedDownloadDetector()
         
-        # Use fallback methods without Chrome
-        await update_progress_message_safe(bot, update.from_user.id, "🔍 Analyzing page content...")
-        video_urls = await enhanced_detector.fallback_direct_analysis(url, bot, update.chat.id)
-        
-        if not video_urls:
-            await update_progress_message_safe(bot, update.from_user.id, "🔍 Trying direct download patterns...")
-            video_urls = await enhanced_detector.try_direct_download_patterns(url, bot, update.chat.id)
+        # Use comprehensive detection method
+        await update_progress_message_safe(bot, update.from_user.id, "🔍 Running comprehensive video detection...")
+        video_urls, downloaded_files = await enhanced_detector.comprehensive_video_detection(url, bot, update.chat.id)
         
         if video_urls and len(video_urls) > 0:
-            # Found video URLs, try to download
+            # Found video URLs, try to download the best one
             best_url = video_urls[0]
             unified_display.filename = f"video_{int(time.time())}.mp4"
             
-            unified_display.current_method = "Direct"
+            unified_display.current_method = "Enhanced"
             unified_display.status = "Downloading"
-            unified_display.total_size = "Unknown"
             
-            await update_progress_message_safe(bot, update.from_user.id, "⬇️ Downloading video...")
+            await update_progress_message_safe(bot, update.from_user.id, f"⬇️ Downloading from: {best_url[:50]}...")
             
             # Download the video
             filepath = await enhanced_detector.human_download_file(best_url, bot, update.chat.id, update.from_user.id)
@@ -231,7 +260,7 @@ async def handle_direct_video_download(bot, update, url):
                 await bot.send_video(
                     chat_id=update.chat.id,
                     video=filepath,
-                    caption="✅ **Enhanced Detection Download Complete!**\n\nDownloaded using direct URL detection",
+                    caption=f"✅ **Enhanced Detection Download Complete!**\n\n🔗 **Found {len(video_urls)} video URLs**\n📥 **Downloaded from:** {best_url[:100]}...",
                     reply_to_message_id=update.id
                 )
                 
@@ -243,9 +272,31 @@ async def handle_direct_video_download(bot, update, url):
                 
                 await progress_msg.edit_text("✅ Video downloaded and uploaded successfully!")
             else:
-                await progress_msg.edit_text("❌ Failed to download video from detected URL")
+                # If first URL fails, try others
+                if len(video_urls) > 1:
+                    for i, alt_url in enumerate(video_urls[1:3], 2):  # Try up to 2 more URLs
+                        await update_progress_message_safe(bot, update.from_user.id, f"🔄 Trying alternative URL {i}/{min(len(video_urls), 3)}...")
+                        
+                        alt_filepath = await enhanced_detector.human_download_file(alt_url, bot, update.chat.id, update.from_user.id)
+                        if alt_filepath and os.path.exists(alt_filepath):
+                            await bot.send_video(
+                                chat_id=update.chat.id,
+                                video=alt_filepath,
+                                caption=f"✅ **Enhanced Detection Download Complete!**\n\n🔗 **Downloaded from alternative URL {i}**",
+                                reply_to_message_id=update.id
+                            )
+                            
+                            try:
+                                os.remove(alt_filepath)
+                            except:
+                                pass
+                                
+                            await progress_msg.edit_text("✅ Video downloaded using alternative URL!")
+                            return
+                
+                await progress_msg.edit_text(f"❌ Failed to download from {len(video_urls)} detected URLs")
         else:
-            await progress_msg.edit_text("❌ No video URLs found. Try using 'auto detect' command for advanced detection.")
+            await progress_msg.edit_text("❌ No video URLs found. Try using 'auto detect' command for advanced detection or ensure the URL contains a video.")
 
     except Exception as e:
         logger.error(f"Direct video download error: {e}")

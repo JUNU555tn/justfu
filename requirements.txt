@@ -19,3 +19,4 @@ itsdangerous
 lk21
 filetype
 tldextract
+ffmpeg-python

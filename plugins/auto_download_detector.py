@@ -622,49 +622,87 @@ class EnhancedDownloadDetector:
             if not os.path.exists(download_dir):
                 os.makedirs(download_dir)
 
-            # Get file info
-            response = requests.head(download_url, headers=headers, timeout=30, allow_redirects=True)
+            # Try HEAD request first to get file info
+            try:
+                response = requests.head(download_url, headers=headers, timeout=30, allow_redirects=True)
+                if response.status_code not in [200, 206]:
+                    # If HEAD fails, try GET with Range header for first byte
+                    range_headers = headers.copy()
+                    range_headers['Range'] = 'bytes=0-0'
+                    response = requests.get(download_url, headers=range_headers, timeout=30, allow_redirects=True)
+            except Exception as e:
+                await self.send_live_log(bot, chat_id, f"🔍 HEAD request failed, trying direct download: {str(e)[:50]}")
+                response = None
 
-            if response.status_code == 200:
+            content_length = 0
+            if response and response.status_code in [200, 206]:
                 content_length = int(response.headers.get('content-length', 0))
                 content_type = response.headers.get('content-type', '')
+                await self.send_live_log(bot, chat_id, f"📊 File info: {content_type}, Size: {self.humanbytes(content_length)}")
 
-                # Determine file extension
-                file_ext = '.mp4'  # default
-                if '.mkv' in download_url.lower(): file_ext = '.mkv'
-                elif '.webm' in download_url.lower(): file_ext = '.webm'
-                elif '.avi' in download_url.lower(): file_ext = '.avi'
-                elif '.m4v' in download_url.lower(): file_ext = '.m4v'
+            # Determine file extension from URL or content type
+            file_ext = '.mp4'  # default
+            if '.mkv' in download_url.lower(): file_ext = '.mkv'
+            elif '.webm' in download_url.lower(): file_ext = '.webm'
+            elif '.avi' in download_url.lower(): file_ext = '.avi'
+            elif '.m4v' in download_url.lower(): file_ext = '.m4v'
+            elif '.mov' in download_url.lower(): file_ext = '.mov'
+            elif response:
+                content_type = response.headers.get('content-type', '').lower()
+                if 'webm' in content_type: file_ext = '.webm'
+                elif 'mkv' in content_type: file_ext = '.mkv'
+                elif 'avi' in content_type: file_ext = '.avi'
 
-                filename = f"video_{int(time.time())}{file_ext}"
-                filepath = os.path.join(download_dir, filename)
+            filename = f"video_{int(time.time())}{file_ext}"
+            filepath = os.path.join(download_dir, filename)
 
-                await self.send_live_log(bot, chat_id, f"📁 Downloading to: {filename}")
-                if content_length > 0:
-                    await self.send_live_log(bot, chat_id, f"📊 File size: {self.humanbytes(content_length)}")
+            await self.send_live_log(bot, chat_id, f"📁 Downloading to: {filename}")
 
-                # Download with progress
+            # Download with progress tracking
+            try:
                 with requests.get(download_url, headers=headers, stream=True, timeout=60) as r:
                     r.raise_for_status()
+                    
+                    # Update content length from actual response if not available from HEAD
+                    if not content_length:
+                        content_length = int(r.headers.get('content-length', 0))
+                    
                     with open(filepath, 'wb') as f:
                         downloaded = 0
+                        last_update = 0
+                        
                         for chunk in r.iter_content(chunk_size=8192):
                             if chunk:
                                 f.write(chunk)
                                 downloaded += len(chunk)
 
-                                # Update progress every 1MB
-                                if downloaded % (1024*1024) == 0:
+                                # Update progress every 1MB or 10% (whichever comes first)
+                                update_interval = min(1024*1024, max(content_length//10, 1024*1024)) if content_length > 0 else 1024*1024
+                                if downloaded - last_update >= update_interval:
+                                    last_update = downloaded
                                     if content_length > 0:
                                         progress = (downloaded / content_length * 100)
                                         await self.send_live_log(bot, chat_id, f"📥 Downloaded: {progress:.1f}% ({self.humanbytes(downloaded)}/{self.humanbytes(content_length)})")
                                     else:
                                         await self.send_live_log(bot, chat_id, f"📥 Downloaded: {self.humanbytes(downloaded)}")
 
-                await self.send_live_log(bot, chat_id, f"✅ Download completed: {filepath}")
-                return filepath
-            else:
-                await self.send_live_log(bot, chat_id, f"❌ Download failed: HTTP {response.status_code}")
+                # Verify file was downloaded
+                if os.path.exists(filepath) and os.path.getsize(filepath) > 0:
+                    actual_size = os.path.getsize(filepath)
+                    await self.send_live_log(bot, chat_id, f"✅ Download completed: {self.humanbytes(actual_size)}")
+                    return filepath
+                else:
+                    await self.send_live_log(bot, chat_id, "❌ Download failed: File is empty or doesn't exist")
+                    return None
+                    
+            except requests.exceptions.Timeout:
+                await self.send_live_log(bot, chat_id, "❌ Download timed out")
+                return None
+            except requests.exceptions.ConnectionError as e:
+                await self.send_live_log(bot, chat_id, f"❌ Connection error: {str(e)[:50]}")
+                return None
+            except requests.exceptions.HTTPError as e:
+                await self.send_live_log(bot, chat_id, f"❌ HTTP error: {e.response.status_code}")
                 return None
 
         except Exception as e:
