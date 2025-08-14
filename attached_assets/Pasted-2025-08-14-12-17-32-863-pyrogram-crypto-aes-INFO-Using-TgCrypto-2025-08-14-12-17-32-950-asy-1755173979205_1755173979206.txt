@@ -1,0 +1,52 @@
+2025-08-14 12:17:32,863 - pyrogram.crypto.aes - INFO - Using TgCrypto
+2025-08-14 12:17:32,950 - asyncio - DEBUG - Using selector: EpollSelector
+2025-08-14 12:17:33,106 - __main__ - INFO - Starting bot application...
+ * Serving Flask app 'web_server'
+ * Debug mode: off
+2025-08-14 12:17:33,123 - werkzeug - INFO - WARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:5000
+ * Running on http://172.31.122.98:5000
+2025-08-14 12:17:33,123 - werkzeug - INFO - Press CTRL+C to quit
+2025-08-14 12:17:41,586 - helper_funcs.help_uploadbot - ERROR - yt-dlp error: ERROR: [generic] Unable to extract flashvars; please report this issue on  https://github.com/yt-dlp/yt-dlp/issues?q= , filling out the appropriate issue template. Confirm you are on the latest version using  yt-dlp -U
+
+2025-08-14 12:17:41,742 - pyrogram.dispatcher - ERROR - Telegram says: [400 BUTTON_DATA_INVALID] - The button callback data is invalid or too large (caused by "messages.SendMessage")
+Traceback (most recent call last):
+  File "/home/runner/workspace/.pythonlibs/lib/python3.12/site-packages/pyrogram/dispatcher.py", line 240, in handler_worker
+    await handler.callback(self.client, *args)
+  File "/home/runner/workspace/plugins/youtube_dl_echo.py", line 201, in echo
+    await bot.send_message(
+  File "/home/runner/workspace/.pythonlibs/lib/python3.12/site-packages/pyrogram/methods/messages/send_message.py", line 126, in send_message
+    r = await self.invoke(
+        ^^^^^^^^^^^^^^^^^^
+  File "/home/runner/workspace/.pythonlibs/lib/python3.12/site-packages/pyrogram/methods/advanced/invoke.py", line 79, in invoke
+    r = await self.session.invoke(
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/workspace/.pythonlibs/lib/python3.12/site-packages/pyrogram/session/session.py", line 389, in invoke
+    return await self.send(query, timeout=timeout)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/workspace/.pythonlibs/lib/python3.12/site-packages/pyrogram/session/session.py", line 357, in send
+    RPCError.raise_it(result, type(data))
+  File "/home/runner/workspace/.pythonlibs/lib/python3.12/site-packages/pyrogram/errors/rpc_error.py", line 91, in raise_it
+    raise getattr(
+pyrogram.errors.exceptions.bad_request_400.ButtonDataInvalid: Telegram says: [400 BUTTON_DATA_INVALID] - The button callback data is invalid or too large (caused by "messages.SendMessage")
+2025-08-14 12:18:22,180 - plugins.youtube_dl_button - INFO - ['yt-dlp', '-c', '--max-filesize', '2097152000', '--embed-subs', '--no-playlist', '--extract-flat', 'false', '--embed-metadata', '--add-metadata', '--write-thumbnail', '--geo-bypass', '--ignore-errors', '-f', '243+bestaudio', '--hls-prefer-ffmpeg', '--merge-output-format', 'mp4', 'https://youtu.be/sYVO2Vy0F2I', '-o', './DOWNLOADS/6415368038/Torch Light Kannada Dubbed Movie_243.webm', '--no-warnings']
+2025-08-14 12:18:22,493 - plugins.youtube_dl_button - INFO - 
+2025-08-14 12:18:22,494 - plugins.youtube_dl_button - INFO - Usage: yt-dlp [OPTIONS] URL [URL...]
+2025-08-14 12:18:22,494 - plugins.youtube_dl_button - INFO - 
+2025-08-14 12:18:22,494 - plugins.youtube_dl_button - INFO - yt-dlp: error: no such option: --extract-flat
+2025-08-14 12:18:25,850 - plugins.youtube_dl_button - DEBUG - ffmpeg thumbnail extraction failed
+2025-08-14 12:19:15,421 - plugins.youtube_dl_button - INFO - ['yt-dlp', '-c', '--max-filesize', '2097152000', '--embed-subs', '--no-playlist', '--extract-flat', 'false', '--embed-metadata', '--add-metadata', '--write-thumbnail', '--geo-bypass', '--ignore-errors', '-f', 'best', '--hls-prefer-ffmpeg', '--merge-output-format', 'mp4', 'https://www.pussyboy.net/video/6972/teen-brunette-step-daughter-wants-step-dad-to-help-her-orgasm-taboo-sex-video/', '-o', './DOWNLOADS/6415368038/Teen Brunette Step Daughter Wants Step Dad To Help Her Orgasm Taboo Sex Video (1)_best.mp4', '--no-warnings']
+2025-08-14 12:19:15,708 - plugins.youtube_dl_button - INFO - 
+2025-08-14 12:19:15,708 - plugins.youtube_dl_button - INFO - Usage: yt-dlp [OPTIONS] URL [URL...]
+2025-08-14 12:19:15,708 - plugins.youtube_dl_button - INFO - 
+2025-08-14 12:19:15,708 - plugins.youtube_dl_button - INFO - yt-dlp: error: no such option: --extract-flat
+2025-08-14 12:19:15,757 - pyrogram.dispatcher - ERROR - Could not find downloaded file. Expected: ./DOWNLOADS/6415368038/Teen Brunette Step Daughter Wants Step Dad To Help Her Orgasm Taboo Sex Video (1)_best.mp4
+Traceback (most recent call last):
+  File "/home/runner/workspace/.pythonlibs/lib/python3.12/site-packages/pyrogram/dispatcher.py", line 240, in handler_worker
+    await handler.callback(self.client, *args)
+  File "/home/runner/workspace/plugins/cb_buttons.py", line 124, in button
+    await youtube_dl_call_back(bot, update)
+  File "/home/runner/workspace/plugins/youtube_dl_button.py", line 258, in youtube_dl_call_back
+    raise FileNotFoundError(f"Could not find downloaded file. Expected: {download_directory}")
+FileNotFoundError: Could not find downloaded file. Expected: ./DOWNLOADS/6415368038/Teen Brunette Step Daughter Wants Step Dad To Help Her Orgasm Taboo Sex Video (1)_best.mp4
