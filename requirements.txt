@@ -17,3 +17,4 @@ Jinja2
 werkzeug
 itsdangerous
 lk21
+filetype
