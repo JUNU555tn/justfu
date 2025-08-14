@@ -1052,7 +1052,7 @@ async def auto_detect_handler(bot: Client, update: Message):
                         await bot.send_message(
                             chat_id=update.chat.id,
                             text=f"🤖 **Human-like Auto Download Started**\n\n📥 Clicking download button like human...\n🔗 URL: `{best_url}`",
-                            reply_to_message_id=update.message_id
+                            reply_to_message_id=update.id
                         )
 
                         # Trigger the normal download process with the detected URL

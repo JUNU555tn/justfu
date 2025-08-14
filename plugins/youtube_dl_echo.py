@@ -43,6 +43,8 @@ def is_youtube_url(url):
     """Check if URL is from YouTube or other yt-dlp supported platforms"""
     youtube_patterns = [
         r'(?:https?://)?(?:www\.)?(?:youtube\.com|youtu\.be)',
+        r'(?:https?://)?(?:www\.)?(?:m\.youtube\.com)',
+        r'(?:https?://)?(?:music\.youtube\.com)',
         r'(?:https?://)?(?:www\.)?(?:vimeo\.com)',
         r'(?:https?://)?(?:www\.)?(?:dailymotion\.com)',
         r'(?:https?://)?(?:www\.)?(?:twitch\.tv)',
@@ -52,12 +54,8 @@ def is_youtube_url(url):
         r'(?:https?://)?(?:www\.)?(?:tiktok\.com)',
         r'(?:https?://)?(?:www\.)?(?:streamable\.com)',
         r'(?:https?://)?(?:www\.)?(?:reddit\.com)',
-        r'(?:https?://)?(?:www\.)?(?:imgur\.com)',
-        r'(?:https?://)?(?:www\.)?(?:xvideos\.com)',
-        r'(?:https?://)?(?:www\.)?(?:pornhub\.com)',
-        r'(?:https?://)?(?:www\.)?(?:xhamster\.com)',
-        r'(?:https?://)?(?:www\.)?(?:redtube\.com)',
-        r'(?:https?://)?(?:www\.)?(?:youporn\.com)'
+        r'(?:https?://)?(?:www\.)?(?:soundcloud\.com)',
+        r'(?:https?://)?(?:www\.)?(?:bandcamp\.com)'
     ]
 
     for pattern in youtube_patterns:
@@ -175,13 +173,19 @@ async def echo(bot, update):
 
     url = update.text.strip()
 
-    # First check if it's a direct video URL
+    # First check if it's a YouTube or yt-dlp supported URL
+    if is_youtube_url(url):
+        # YouTube/supported platform - use yt-dlp
+        await handle_youtube_download(bot, update, url)
+        return
+
+    # Check if it's a direct video URL
     if is_direct_video_url(url):
         # Direct video URL - download immediately
         await handle_direct_video_download(bot, update, url, is_direct=True)
         return
 
-    # Try yt-dlp first for supported platforms
+    # For other URLs, try yt-dlp first, then fallback to enhanced detection
     ytdlp_success = await try_ytdlp_first(url, bot, update)
     
     if not ytdlp_success:
@@ -196,7 +200,7 @@ async def echo(bot, update):
         
         await bot.send_message(
             chat_id=update.chat.id,
-            text="🤖 **yt-dlp failed to process this URL**\n\nChoose detection method:",
+            text="🤖 **URL not recognized as a supported platform**\n\nChoose detection method:",
             reply_markup=InlineKeyboardMarkup(buttons),
             reply_to_message_id=update.id
         )
