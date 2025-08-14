@@ -22,6 +22,7 @@ from translation import Translation
 import pyrogram
 from pyrogram import filters
 from pyrogram.types import InlineKeyboardButton, InlineKeyboardMarkup
+import re
 
 from plugins.auto_download_detector import EnhancedDownloadDetector, AutoDownloadDetector
 from plugins.manual_download_helper import manual_helper
@@ -38,6 +39,24 @@ logging.getLogger('werkzeug').setLevel(logging.WARNING)
 
 # Global progress tracking
 progress_messages = {}
+
+def is_youtube_url(url):
+    """Check if URL is from YouTube or other yt-dlp supported platforms"""
+    youtube_patterns = [
+        r'(?:https?://)?(?:www\.)?(?:youtube\.com|youtu\.be)',
+        r'(?:https?://)?(?:www\.)?(?:vimeo\.com)',
+        r'(?:https?://)?(?:www\.)?(?:dailymotion\.com)',
+        r'(?:https?://)?(?:www\.)?(?:twitch\.tv)',
+        r'(?:https?://)?(?:www\.)?(?:instagram\.com)',
+        r'(?:https?://)?(?:www\.)?(?:facebook\.com)',
+        r'(?:https?://)?(?:www\.)?(?:twitter\.com|x\.com)',
+        r'(?:https?://)?(?:www\.)?(?:tiktok\.com)'
+    ]
+    
+    for pattern in youtube_patterns:
+        if re.search(pattern, url, re.IGNORECASE):
+            return True
+    return False
 
 class UnifiedProgressDisplay:
     def __init__(self):
@@ -116,6 +135,47 @@ async def echo(bot, update):
         )
         return
 
+    url = update.text.strip()
+    
+    # Check if it's a YouTube or yt-dlp supported URL
+    if is_youtube_url(url):
+        # Use yt-dlp for YouTube and supported platforms
+        await handle_youtube_download(bot, update, url)
+    else:
+        # Use enhanced detection for direct video URLs
+        await handle_direct_video_download(bot, update, url)
+
+async def handle_youtube_download(bot, update, url):
+    """Handle YouTube and yt-dlp supported URLs"""
+    # Import here to avoid circular imports
+    from helper_funcs.help_uploadbot import get_formats_from_link
+    
+    try:
+        # Show initial status
+        status_msg = await bot.send_message(
+            chat_id=update.chat.id,
+            text="🔍 Analyzing YouTube URL with yt-dlp...",
+            reply_to_message_id=update.id
+        )
+        
+        # Get available formats using yt-dlp
+        response_json = await get_formats_from_link(url, bot, update)
+        
+        if response_json:
+            await status_msg.edit_text("✅ Found available formats! Please choose quality from the buttons below:")
+        else:
+            await status_msg.edit_text("❌ Failed to get video formats from this YouTube URL.")
+            
+    except Exception as e:
+        logger.error(f"YouTube download error: {e}")
+        await bot.send_message(
+            chat_id=update.chat.id,
+            text=f"❌ YouTube download failed: {str(e)}",
+            reply_to_message_id=update.id
+        )
+
+async def handle_direct_video_download(bot, update, url):
+    """Handle direct video URLs with enhanced detection"""
     # Initialize unified progress display
     global unified_display
     unified_display = UnifiedProgressDisplay()
@@ -132,95 +192,64 @@ async def echo(bot, update):
     # Store progress message for updates
     progress_messages[update.from_user.id] = progress_msg
     
-    # Try different download methods
-    url = update.text
-    
     try:
         # Update status to detection
-        unified_display.current_method = "Detection"
+        unified_display.current_method = "Enhanced"
         unified_display.status = "Detecting"
-        await update_progress_message(bot, update.from_user.id, "🔍 Starting detection...")
+        await update_progress_message_safe(bot, update.from_user.id, "🔍 Starting enhanced detection...")
         
-        # Try enhanced detection first
+        # Try enhanced detection (without Chrome since it's not available)
         enhanced_detector = EnhancedDownloadDetector()
-        unified_display.current_method = "Enhanced"
         
-        # Simulate detection progress
-        for i in range(3):
-            unified_display.download_progress = (i + 1) * 10
-            await update_progress_message(bot, update.from_user.id, f"🔄 Detection method {i+1}/3...")
-            await asyncio.sleep(1)
+        # Use fallback methods without Chrome
+        await update_progress_message_safe(bot, update.from_user.id, "🔍 Analyzing page content...")
+        video_urls = await enhanced_detector.fallback_direct_analysis(url, bot, update.chat.id)
         
-        # Try comprehensive detection
-        unified_display.current_method = "Enhanced"
-        unified_display.status = "Detecting"
-        await update_progress_message(bot, update.from_user.id, "🔍 Starting comprehensive detection...")
-        
-        video_urls, downloaded_files = await enhanced_detector.comprehensive_video_detection(url, bot, update.chat.id)
+        if not video_urls:
+            await update_progress_message_safe(bot, update.from_user.id, "🔍 Trying direct download patterns...")
+            video_urls = await enhanced_detector.try_direct_download_patterns(url, bot, update.chat.id)
         
         if video_urls and len(video_urls) > 0:
-            # Extract filename from URL or use default
-            if video_urls:
-                best_url = video_urls[0]
-                if 'desitales' in best_url or 'cdn.' in best_url:
-                    unified_display.filename = "famous-pakistani-fitness-model.mp4"
-                else:
-                    unified_display.filename = f"video_{int(time.time())}.mp4"
+            # Found video URLs, try to download
+            best_url = video_urls[0]
+            unified_display.filename = f"video_{int(time.time())}.mp4"
             
-            unified_display.current_method = "Enhanced"
-            unified_display.status = "Download"
-            unified_display.total_size = "7.58MB"  # From the logs, we can see 7946048 bytes ≈ 7.58MB
+            unified_display.current_method = "Direct"
+            unified_display.status = "Downloading"
+            unified_display.total_size = "Unknown"
             
-            # Simulate download progress
-            for progress in range(0, 101, 20):
-                unified_display.download_progress = progress
-                unified_display.downloaded_size = f"{progress * 0.0758:.2f}MB"
-                unified_display.download_speed = f"{150 + progress * 2} KB/s"
-                await update_progress_message(bot, update.from_user.id, "Download")
-                await asyncio.sleep(0.3)
+            await update_progress_message_safe(bot, update.from_user.id, "⬇️ Downloading video...")
             
-            # Show upload progress
-            unified_display.status = "Upload"
-            unified_display.upload_progress = 0
+            # Download the video
+            filepath = await enhanced_detector.human_download_file(best_url, bot, update.chat.id, update.from_user.id)
             
-            # Simulate upload with progress
-            for progress in range(0, 101, 15):
-                unified_display.upload_progress = progress
-                unified_display.upload_speed = f"{progress * 3 + 50} KB/s"
-                await update_progress_message(bot, update.from_user.id, "Upload")
-                await asyncio.sleep(0.4)
-            
-            # Final completion
-            unified_display.status = "Completed"
-            unified_display.download_progress = 100
-            unified_display.upload_progress = 100
-            await update_progress_message(bot, update.from_user.id, "✅ Upload completed!")
-            
+            if filepath and os.path.exists(filepath):
+                unified_display.status = "Uploading"
+                await update_progress_message_safe(bot, update.from_user.id, "📤 Uploading to Telegram...")
+                
+                # Upload to Telegram
+                await bot.send_video(
+                    chat_id=update.chat.id,
+                    video=filepath,
+                    caption="✅ **Enhanced Detection Download Complete!**\n\nDownloaded using direct URL detection",
+                    reply_to_message_id=update.id
+                )
+                
+                # Clean up
+                try:
+                    os.remove(filepath)
+                except:
+                    pass
+                
+                await progress_msg.edit_text("✅ Video downloaded and uploaded successfully!")
+            else:
+                await progress_msg.edit_text("❌ Failed to download video from detected URL")
         else:
-            # Fallback to manual method
-            unified_display.current_method = "Manual"
-            unified_display.status = "Manual"
-            await update_progress_message(bot, update.from_user.id, "🔄 Trying manual detection...")
-            
-            # Simulate manual detection
-            for progress in range(0, 81, 20):
-                unified_display.download_progress = progress
-                await update_progress_message(bot, update.from_user.id, "Manual Detection")
-                await asyncio.sleep(0.5)
-            
-            await bot.edit_message_text(
-                chat_id=update.chat.id,
-                message_id=progress_msg.id,
-                text="❌ All detection methods failed. Please try a different URL."
-            )
+            await progress_msg.edit_text("❌ No video URLs found. Try using 'auto detect' command for advanced detection.")
 
     except Exception as e:
-        logger.error(f"Download error: {e}")
-        await bot.edit_message_text(
-            chat_id=update.chat.id,
-            message_id=progress_msg.id,
-            text=f"❌ Error: {str(e)}"
-        )
+        logger.error(f"Direct video download error: {e}")
+        await progress_msg.edit_text(f"❌ Download error: {str(e)}")
     finally:
         # Clean up progress tracking
         if update.from_user.id in progress_messages:
@@ -242,6 +271,35 @@ async def update_progress_message(bot, user_id, status_text):
         )
     except Exception as e:
         logger.error(f"Failed to update progress: {e}")
+
+async def update_progress_message_safe(bot, user_id, status_text):
+    """Safely update progress message with duplicate content check"""
+    if user_id not in progress_messages:
+        return
+        
+    try:
+        progress_msg = progress_messages[user_id]
+        old_status = unified_display.status
+        unified_display.status = status_text
+        
+        new_text = unified_display.get_unified_message(user_id)
+        
+        # Only update if content has actually changed
+        try:
+            current_msg = await bot.get_messages(progress_msg.chat.id, progress_msg.id)
+            if current_msg.text != new_text:
+                await bot.edit_message_text(
+                    chat_id=progress_msg.chat.id,
+                    message_id=progress_msg.id,
+                    text=new_text
+                )
+        except Exception as edit_error:
+            # If we can't get current message, just try to update
+            if "MESSAGE_NOT_MODIFIED" not in str(edit_error):
+                logger.debug(f"Progress update failed: {edit_error}")
+                
+    except Exception as e:
+        logger.error(f"Failed to update progress safely: {e}")
 
 # Progress callback for downloads
 async def download_progress_hook(current, total, user_id, bot, filename=""):

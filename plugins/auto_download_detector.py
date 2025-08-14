@@ -58,33 +58,31 @@ class EnhancedDownloadDetector:
     def setup_driver(self):
         """Setup Chrome driver with enhanced options"""
         try:
-            # Try to install Chrome first
-            self.install_chrome()
+            # Check if Chrome is available first
+            if not self.install_chrome():
+                logger.warning("Chrome not available, skipping browser-based detection")
+                return None
+                
             driver = webdriver.Chrome(options=self.chrome_options)
             driver.set_page_load_timeout(30)
             return driver
         except Exception as e:
-            logger.error(f"Failed to setup driver: {e}")
+            logger.warning(f"Browser not available, using fallback methods: {e}")
             return None
 
     def install_chrome(self):
-        """Install Chrome if not available"""
+        """Install Chrome if not available - Skip in Nix environment"""
         try:
             # Check if Chrome is already installed
             result = subprocess.run(['which', 'google-chrome-stable'], capture_output=True)
             if result.returncode != 0:
-                logger.info("Installing Google Chrome...")
-                # Install Chrome
-                commands = [
-                    'wget -q -O - https://dl.google.com/linux/linux_signing_key.pub | apt-key add -',
-                    'echo "deb [arch=amd64] http://dl.google.com/linux/chrome/deb/ stable main" > /etc/apt/sources.list.d/google-chrome.list',
-                    'apt-get update -qq',
-                    'apt-get install -y google-chrome-stable'
-                ]
-                for cmd in commands:
-                    subprocess.run(cmd, shell=True, check=True)
+                logger.warning("Chrome not available in Nix environment. Using fallback methods only.")
+                # In Nix environment, we can't install Chrome easily, so we'll skip browser-based detection
+                return False
+            return True
         except Exception as e:
-            logger.error(f"Failed to install Chrome: {e}")
+            logger.error(f"Chrome check failed: {e}")
+            return False
 
     async def fallback_direct_analysis(self, url: str, bot: Client, chat_id: int):
         """Fallback method using direct HTTP requests and BeautifulSoup"""

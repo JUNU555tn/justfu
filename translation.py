@@ -3,11 +3,24 @@
 
 class Translation(object):
     START_TEXT = """Hello {},
-I am a Telegram Bot that can download videos from various websites.
+This is a Telegram Bot to Upload your Youtube-dl Supported Videos into Telegram as Streamable Video.
 
-Send me a video URL to get started!
+<b>Please Send me a Youtube-dl Supported URL</b>, See /help for More info.
 
-Made with ❤️ by @LazyDeveloper"""
+<b>Subscribe: @LazyDeveloper</b>
+"""
+    LAZY_DEVELOPER_TEXT = """Hello {},
+Welcome to the Lazy Developer Bot! 🚀
+
+This bot can download videos from various platforms and upload them to Telegram.
+
+Available Commands:
+• Send any video URL for automatic download
+• YouTube links will use yt-dlp
+• Other video sites will use enhanced detection
+
+Made with ❤️ by @LazyDeveloper
+"""
 
     HELP_USER = """**How to use me:**
 
