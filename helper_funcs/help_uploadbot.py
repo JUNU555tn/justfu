@@ -73,6 +73,10 @@ async def get_formats_from_link(url, bot, update):
             "--no-playlist",
             "--geo-bypass",
             "--ignore-errors",
+            "--user-agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36",
+            "--referer", url,
+            "--extractor-retries", "3",
+            "--fragment-retries", "3",
             url
         ]
         
@@ -210,6 +214,10 @@ async def create_format_buttons(bot, update, response_json):
         
         # Add file download option
         buttons.append([InlineKeyboardButton("📁 Best Quality File", callback_data="file|best|mp4")])
+        
+        # Add fallback options for generic sites
+        buttons.append([InlineKeyboardButton("🎬 Generic Video", callback_data="video|best|mp4")])
+        buttons.append([InlineKeyboardButton("📱 Mobile Quality", callback_data="video|worst|mp4")])
         
         # Calculate video info for display
         title = response_json.get('title', 'Video')

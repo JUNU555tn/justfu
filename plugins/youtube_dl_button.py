@@ -41,7 +41,21 @@ from helper_funcs.help_Nekmo_ffmpeg import generate_screen_shots
 async def youtube_dl_call_back(bot, update):
     cb_data = update.data
     # youtube_dl extractors
-    tg_send_type, youtube_dl_format, youtube_dl_ext = cb_data.split("|")
+    cb_parts = cb_data.split("|")
+    if len(cb_parts) < 3:
+        # Handle cases where callback data doesn't have all 3 parts
+        if len(cb_parts) == 2:
+            tg_send_type, youtube_dl_format = cb_parts
+            youtube_dl_ext = "mp4"  # Default extension
+        else:
+            await bot.edit_message_text(
+                text="❌ Invalid callback data format",
+                chat_id=update.message.chat.id,
+                message_id=update.message.id
+            )
+            return False
+    else:
+        tg_send_type, youtube_dl_format, youtube_dl_ext = cb_parts
     thumb_image_path = Config.DOWNLOAD_LOCATION + \
         "/" + str(update.from_user.id) + ".jpg"
     save_ytdl_json_path = Config.DOWNLOAD_LOCATION + \
@@ -142,6 +156,8 @@ async def youtube_dl_call_back(bot, update):
             "--write-thumbnail",
             "--geo-bypass",
             "--ignore-errors",
+            "--user-agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36",
+            "--referer", youtube_dl_url,
             "-f", minus_f_format,
             "--hls-prefer-ffmpeg", 
             "--merge-output-format", "mp4",
