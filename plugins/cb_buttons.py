@@ -122,5 +122,5 @@ async def button(bot, update):
                 )
         elif "|" in cb_data:
             await youtube_dl_call_back(bot, update)
-        elif "=" in cb_data:
+        elif "=" in cb_data or cb_data.startswith("ddl|"):
             await ddl_call_back(bot, update)

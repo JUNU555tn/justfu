@@ -60,12 +60,17 @@ from config import Config
 logger = logging.getLogger(__name__)
 
 async def get_formats_from_link(url, bot, update):
-    """Get available formats from YouTube URL using yt-dlp"""
+    """Get available formats from YouTube URL using multiple fallback methods"""
+    json_file_path = f"{Config.DOWNLOAD_LOCATION}/{update.from_user.id}.json"
+    
+    # Method 1: Try standard yt-dlp
     try:
-        # Create temporary JSON file path
-        json_file_path = f"{Config.DOWNLOAD_LOCATION}/{update.from_user.id}.json"
+        await bot.edit_message_text(
+            text="🔄 **Method 1:** Trying standard yt-dlp...",
+            chat_id=update.chat.id,
+            message_id=update.id
+        )
         
-        # yt-dlp command to get formats with better extraction
         command = [
             "yt-dlp",
             "--dump-json",
@@ -80,7 +85,6 @@ async def get_formats_from_link(url, bot, update):
             url
         ]
         
-        # Execute yt-dlp command
         process = await asyncio.create_subprocess_exec(
             *command,
             stdout=asyncio.subprocess.PIPE,
@@ -90,24 +94,91 @@ async def get_formats_from_link(url, bot, update):
         stdout, stderr = await process.communicate()
         
         if process.returncode == 0:
-            # Parse JSON response
             response_json = json.loads(stdout.decode())
-            
-            # Save JSON for later use
             with open(json_file_path, "w", encoding="utf8") as f:
                 json.dump(response_json, f, ensure_ascii=False, indent=4)
             
-            # Create format buttons
             await create_format_buttons(bot, update, response_json)
-            
             return response_json
         else:
-            error_msg = stderr.decode() if stderr else "Unknown error"
-            logger.error(f"yt-dlp error: {error_msg}")
-            return None
-            
+            logger.info(f"Method 1 failed: {stderr.decode() if stderr else 'Unknown error'}")
+    
     except Exception as e:
-        logger.error(f"Format detection error: {e}")
+        logger.info(f"Method 1 exception: {e}")
+    
+    # Method 2: Try with generic extractor
+    try:
+        await bot.edit_message_text(
+            text="🔄 **Method 2:** Trying generic extractor...",
+            chat_id=update.chat.id,
+            message_id=update.id
+        )
+        
+        command = [
+            "yt-dlp",
+            "--dump-json",
+            "--no-warnings",
+            "--no-playlist",
+            "--geo-bypass",
+            "--ignore-errors",
+            "--force-generic-extractor",
+            "--user-agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36",
+            url
+        ]
+        
+        process = await asyncio.create_subprocess_exec(
+            *command,
+            stdout=asyncio.subprocess.PIPE,
+            stderr=asyncio.subprocess.PIPE
+        )
+        
+        stdout, stderr = await process.communicate()
+        
+        if process.returncode == 0:
+            response_json = json.loads(stdout.decode())
+            with open(json_file_path, "w", encoding="utf8") as f:
+                json.dump(response_json, f, ensure_ascii=False, indent=4)
+            
+            await create_format_buttons(bot, update, response_json)
+            return response_json
+        else:
+            logger.info(f"Method 2 failed: {stderr.decode() if stderr else 'Unknown error'}")
+    
+    except Exception as e:
+        logger.info(f"Method 2 exception: {e}")
+    
+    # Method 3: Create fallback response and try auto-download
+    try:
+        await bot.edit_message_text(
+            text="🔄 **Method 3:** Creating fallback options with auto-download...",
+            chat_id=update.chat.id,
+            message_id=update.id
+        )
+        
+        # Create a basic response for unknown sites
+        fallback_response = {
+            "title": "Unknown Video",
+            "uploader": "Unknown",
+            "duration": 0,
+            "formats": [
+                {"format_id": "best", "ext": "mp4", "height": 720},
+                {"format_id": "worst", "ext": "mp4", "height": 360}
+            ]
+        }
+        
+        with open(json_file_path, "w", encoding="utf8") as f:
+            json.dump(fallback_response, f, ensure_ascii=False, indent=4)
+        
+        await create_fallback_buttons(bot, update, fallback_response)
+        return fallback_response
+        
+    except Exception as e:
+        logger.error(f"All methods failed: {e}")
+        await bot.edit_message_text(
+            text="❌ **All download methods failed!**\n\nThe video URL may not be supported or may require special authentication.",
+            chat_id=update.chat.id,
+            message_id=update.id
+        )
         return None
 
 def humanbytes(size):
@@ -134,6 +205,38 @@ async def get_format_filesize(format_info):
             filesize = int(tbr * duration * 125)  # Convert kbps to bytes
     
     return filesize or 0
+
+async def create_fallback_buttons(bot, update, response_json):
+    """Create fallback buttons when standard extraction fails"""
+    try:
+        buttons = []
+        
+        # Add automatic download options that will try multiple methods
+        buttons.append([InlineKeyboardButton("🤖 Auto Download (Best Quality)", callback_data="video|best|mp4")])
+        buttons.append([InlineKeyboardButton("📱 Auto Download (Mobile Quality)", callback_data="video|worst|mp4")])
+        buttons.append([InlineKeyboardButton("📁 Auto Download (File)", callback_data="file|best|mp4")])
+        buttons.append([InlineKeyboardButton("🎵 Auto Download (Audio)", callback_data="audio|best|mp3")])
+        
+        # Add selenium auto-click option
+        buttons.append([InlineKeyboardButton("🌐 Auto-Click Download", callback_data="ddl|auto|mp4")])
+        
+        info_text = f"🎬 **{response_json.get('title', 'Unknown Video')}**\n\n"
+        info_text += "⚠️ **Standard extraction failed**\n"
+        info_text += "🤖 **Auto-download will try multiple methods:**\n"
+        info_text += "• yt-dlp with different extractors\n"
+        info_text += "• Direct URL extraction\n"
+        info_text += "• Selenium auto-click\n\n"
+        info_text += "📥 **Select download method:**"
+        
+        await bot.send_message(
+            chat_id=update.chat.id,
+            text=info_text,
+            reply_markup=InlineKeyboardMarkup(buttons),
+            reply_to_message_id=update.id
+        )
+        
+    except Exception as e:
+        logger.error(f"Fallback button creation error: {e}")
 
 async def create_format_buttons(bot, update, response_json):
     """Create inline keyboard with format options showing quality and file size"""

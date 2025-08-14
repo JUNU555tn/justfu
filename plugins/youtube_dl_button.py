@@ -66,7 +66,7 @@ async def youtube_dl_call_back(bot, update):
     except (FileNotFoundError) as e:
         await bot.delete_messages(
             chat_id=update.message.chat.id,
-            message_ids=update.message.message_id,
+            message_ids=update.message.id,
             revoke=True
         )
         return False
@@ -178,6 +178,18 @@ async def youtube_dl_call_back(bot, update):
     logger.info(command_to_exec)
     start = datetime.now()
     
+    # Try multiple download methods automatically
+    download_success = False
+    method_count = 0
+    
+    # Method 1: Standard yt-dlp
+    method_count += 1
+    await bot.edit_message_text(
+        text=f"🔄 **Trying Method {method_count}:** Standard yt-dlp...",
+        chat_id=update.message.chat.id,
+        message_id=update.message.id
+    )
+    
     # Create subprocess with real-time output monitoring
     process = await asyncio.create_subprocess_exec(
         *command_to_exec,
@@ -226,10 +238,95 @@ async def youtube_dl_call_back(bot, update):
     
     await process.wait()
     t_response = "\n".join(output_lines)
-    e_response = ""
-    ad_string_to_replace = "please report this issue on https://yt-dl.org/bug . Make sure you are using the latest version; see  https://yt-dl.org/update  on how to update. Be sure to call youtube-dl with the --verbose flag and include its complete output."
-    if e_response and ad_string_to_replace in e_response:
-        error_message = e_response.replace(ad_string_to_replace, "")
+    
+    # Check if download was successful
+    if process.returncode == 0 and any("100%" in line for line in output_lines):
+        download_success = True
+    
+    # If first method failed, try alternative methods
+    if not download_success and method_count < 3:
+        
+        # Method 2: Generic extractor
+        if method_count == 1:
+            method_count += 1
+            await bot.edit_message_text(
+                text=f"🔄 **Method 1 failed. Trying Method {method_count}:** Generic extractor...",
+                chat_id=update.message.chat.id,
+                message_id=update.message.id
+            )
+            
+            # Modify command for generic extractor
+            generic_command = command_to_exec.copy()
+            generic_command.insert(-2, "--force-generic-extractor")
+            
+            process2 = await asyncio.create_subprocess_exec(
+                *generic_command,
+                stdout=asyncio.subprocess.PIPE,
+                stderr=asyncio.subprocess.STDOUT,
+            )
+            
+            output_lines2 = []
+            while True:
+                line = await process2.stdout.readline()
+                if not line:
+                    break
+                line_text = line.decode().strip()
+                output_lines2.append(line_text)
+                logger.info(line_text)
+            
+            await process2.wait()
+            if process2.returncode == 0:
+                download_success = True
+                t_response = "\n".join(output_lines2)
+        
+        # Method 3: Try different format
+        if not download_success and method_count == 2:
+            method_count += 1
+            await bot.edit_message_text(
+                text=f"🔄 **Method 2 failed. Trying Method {method_count}:** Alternative format...",
+                chat_id=update.message.chat.id,
+                message_id=update.message.id
+            )
+            
+            # Try with different format
+            alt_command = command_to_exec.copy()
+            # Replace format with 'best' if it was specific
+            if "-f" in alt_command:
+                f_index = alt_command.index("-f")
+                if f_index + 1 < len(alt_command):
+                    alt_command[f_index + 1] = "best"
+            
+            process3 = await asyncio.create_subprocess_exec(
+                *alt_command,
+                stdout=asyncio.subprocess.PIPE,
+                stderr=asyncio.subprocess.STDOUT,
+            )
+            
+            output_lines3 = []
+            while True:
+                line = await process3.stdout.readline()
+                if not line:
+                    break
+                line_text = line.decode().strip()
+                output_lines3.append(line_text)
+                logger.info(line_text)
+            
+            await process3.wait()
+            if process3.returncode == 0:
+                download_success = True
+                t_response = "\n".join(output_lines3)
+    
+    # If all yt-dlp methods failed, show error
+    if not download_success:
+        error_message = f"❌ **All {method_count} download methods failed!**\n\n"
+        error_message += "Methods tried:\n"
+        error_message += "1. Standard yt-dlp\n"
+        if method_count >= 2:
+            error_message += "2. Generic extractor\n"
+        if method_count >= 3:
+            error_message += "3. Alternative format\n"
+        error_message += "\n💡 Try using Auto-Click Download button instead."
+        
         await bot.edit_message_text(
             chat_id=update.message.chat.id,
             message_id=update.message.id,
