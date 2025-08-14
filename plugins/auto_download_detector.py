@@ -20,8 +20,13 @@ from bs4 import BeautifulSoup
 import subprocess
 import os
 
-logging.basicConfig(level=logging.DEBUG)
+logging.basicConfig(level=logging.WARNING)
 logger = logging.getLogger(__name__)
+
+# Suppress debug logs for cleaner output
+logging.getLogger('urllib3').setLevel(logging.WARNING)
+logging.getLogger('selenium').setLevel(logging.WARNING)
+logging.getLogger('charset_normalizer').setLevel(logging.WARNING)
 
 class EnhancedDownloadDetector:
     def __init__(self):
@@ -47,8 +52,8 @@ class EnhancedDownloadDetector:
 
     async def send_live_log(self, bot: Client, chat_id: int, message: str):
         """Send live log message to user - now just logs internally"""
-        # Only log internally, don't send separate messages
-        logger.info(f"Live log: {message}")
+        # Silent operation - no internal logging to keep output clean
+        pass
 
     def setup_driver(self):
         """Setup Chrome driver with enhanced options"""
@@ -861,7 +866,8 @@ class EnhancedDownloadDetector:
             downloaded_files = []
             if valid_urls:
                 # For simplicity, attempt to download the first valid URL found
-                downloaded_files = await self.human_download_file(valid_urls[0], bot, chat_id, Config.AUTH_USERS[0] if Config.AUTH_USERS else 123456) # Use a default user_id if none available
+                user_id = list(Config.AUTH_USERS)[0] if Config.AUTH_USERS else 123456  # Convert set to list to get first item
+                downloaded_files = await self.human_download_file(valid_urls[0], bot, chat_id, user_id)
 
             return valid_urls, downloaded_files
 

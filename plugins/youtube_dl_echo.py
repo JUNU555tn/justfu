@@ -26,8 +26,15 @@ from pyrogram.types import InlineKeyboardButton, InlineKeyboardMarkup
 from plugins.auto_download_detector import EnhancedDownloadDetector, AutoDownloadDetector
 from plugins.manual_download_helper import manual_helper
 
-logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+logging.basicConfig(level=logging.WARNING, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
+
+# Suppress urllib3 and selenium debug logs
+logging.getLogger('urllib3').setLevel(logging.WARNING)
+logging.getLogger('selenium').setLevel(logging.WARNING)
+logging.getLogger('pyrogram').setLevel(logging.WARNING)
+logging.getLogger('asyncio').setLevel(logging.WARNING)
+logging.getLogger('werkzeug').setLevel(logging.WARNING)
 
 # Global progress tracking
 progress_messages = {}
@@ -60,7 +67,7 @@ class UnifiedProgressDisplay:
         message += f"┠ Status: {self.status} | ETA: -\n"
         message += f"┠ Speed: {self.download_speed} | Elapsed: {self.get_elapsed_time()}\n"
         message += f"┠ Engine: PyroMulti v2.3.45\n"
-        message += f"┠ Mode: #{self.current_method} | #Direct\n"
+        message += f"┠ Mode: #{self.current_method} | #Aria2\n"
         message += f"┠ User: Jack | ID: {user_id}\n"
         
         if cancel_id:
