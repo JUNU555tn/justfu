@@ -22,6 +22,7 @@ import pyrogram
 from pyrogram import filters
 from pyrogram.types import InlineKeyboardButton, InlineKeyboardMarkup
 import re
+from pyrogram import enums
 
 from plugins.auto_download_detector import EnhancedDownloadDetector, AutoDownloadDetector
 from plugins.manual_download_helper import manual_helper
@@ -90,7 +91,7 @@ async def try_ytdlp_first(url, bot, update):
     """Try yt-dlp first for all URLs to get better quality and metadata"""
     try:
         from helper_funcs.help_uploadbot import get_formats_from_link
-        
+
         # Show initial status
         status_msg = await bot.send_message(
             chat_id=update.chat.id,
@@ -179,55 +180,98 @@ async def help_user(bot, update):
         reply_to_message_id=update.id
     )
 
-@pyrogram.Client.on_message(pyrogram.filters.regex(pattern=".*http.*"))
-async def echo(bot, update):
-    if update.from_user.id not in Config.AUTH_USERS:
+async def handle_desitales2_url(url, bot, update):
+    """Handle URLs from desitales2.com and similar sites that might redirect"""
+    try:
+        from helper_funcs.help_uploadbot import get_final_url_from_desitales2
+
+        status_msg = await bot.send_message(
+            chat_id=update.chat.id,
+            text="🔍 Resolving redirected URL...",
+            reply_to_message_id=update.id
+        )
+
+        final_url = await get_final_url_from_desitales2(url, bot, update)
+
+        if final_url:
+            await status_msg.edit_text(f"✅ Resolved URL: {final_url}\n\nNow processing with standard methods...")
+            # Re-process the final URL with existing logic
+            # This ensures that both yt-dlp and enhanced detection are tried on the actual video source
+            await process_url_with_detected_methods(final_url, bot, update)
+        else:
+            await status_msg.edit_text("❌ Failed to resolve the redirected URL.")
+            await bot.send_message(
+                chat_id=update.chat.id,
+                text="❌ Could not get the final download URL. Please check the link or try again later.",
+                reply_to_message_id=update.id
+            )
+    except Exception as e:
+        logger.error(f"Error handling desitales2.com URL: {e}")
         await bot.send_message(
             chat_id=update.chat.id,
-            text=Translation.NOT_AUTH_USER_TEXT,
+            text=f"❌ An error occurred while processing the link: {str(e)}",
             reply_to_message_id=update.id
+        )
+
+async def process_url_with_detected_methods(url, bot, update):
+    """Processes a URL using the appropriate detection methods (yt-dlp, direct, enhanced)"""
+    # Special handling for desitales2.com and similar sites is done before calling this
+
+    # Check if URL is from YouTube/supported platforms first
+    if is_youtube_url(url):
+        await try_ytdlp_first(url, bot, update)
+        return
+
+    # For direct video URLs, try yt-dlp first then fallback
+    if is_direct_video_url(url):
+        success = await try_ytdlp_first(url, bot, update)
+        if not success:
+            # Create direct download buttons
+            await create_direct_download_buttons(url, bot, update)
+        return
+
+    # For other URLs, try enhanced detection
+    await try_enhanced_detection(url, bot, update)
+
+
+@pyrogram.Client.on_message(pyrogram.filters.regex(pattern=".*http.*"))
+async def echo(bot, update):
+
+    if update.text.startswith("/"):
+        return
+    # TRChatBase(update.from_user.id, update.text, "echo") # Assuming TRChatBase is defined elsewhere
+    url = update.text
+    if ":" not in url:
+        await bot.send_message(
+            chat_id=update.chat.id,
+            text=Translation.NO_VOID_FORMAT_FOUND.format("https://telegram.org/blog/channels-2-0#streaming-videos"),
+            reply_to_message_id=update.id,
+            parse_mode=enums.ParseMode.HTML,
+            disable_web_page_preview=True
         )
         return
 
-    url = update.text.strip()
+    # Special handling for desitales2.com and similar sites
+    if any(domain in url.lower() for domain in ['desitales2.com', 'get_file']):
+        await handle_desitales2_url(url, bot, update)
+        return
 
-    # Try yt-dlp for all URLs first (auto-sequential download)
-    from helper_funcs.help_uploadbot import get_formats_from_link
-    
-    try:
-        # This will now automatically download the best quality if successful
-        response_json = await get_formats_from_link(url, bot, update)
-        
-        # If yt-dlp succeeds, the download will already be started
-        if response_json:
-            return
-            
-    except Exception as e:
-        logger.error(f"yt-dlp failed: {e}")
-    
-    # If yt-dlp fails, try enhanced detection
-    try:
-        # Check if it's a direct video URL
-        if is_direct_video_url(url):
-            await handle_direct_video_download(bot, update, url, is_direct=True)
-            return
-        
-        # Try enhanced detection for other URLs
-        status_msg = await bot.send_message(
-            chat_id=update.chat.id,
-            text="🔄 yt-dlp failed, trying enhanced detection...",
-            reply_to_message_id=update.id
-        )
-        
-        await handle_direct_video_download(bot, update, url, is_direct=False)
-        
-    except Exception as e:
-        logger.error(f"All download methods failed: {e}")
-        await bot.send_message(
-            chat_id=update.chat.id,
-            text=f"❌ All download methods failed.\n\nError: {str(e)}",
-            reply_to_message_id=update.id
-        )
+    # Check if URL is from YouTube/supported platforms first
+    if is_youtube_url(url):
+        await try_ytdlp_first(url, bot, update)
+        return
+
+    # For direct video URLs, try yt-dlp first then fallback
+    if is_direct_video_url(url):
+        success = await try_ytdlp_first(url, bot, update)
+        if not success:
+            # Create direct download buttons
+            await create_direct_download_buttons(url, bot, update)
+        return
+
+    # For other URLs, try enhanced detection
+    await try_enhanced_detection(url, bot, update)
+
 
 async def handle_youtube_download(bot, update, url):
     """Handle YouTube and yt-dlp supported URLs"""
@@ -278,7 +322,7 @@ async def handle_direct_video_download(bot, update, url, is_direct=False):
 
     try:
         enhanced_detector = EnhancedDownloadDetector()
-        
+
         # Check if URL is already a direct video link
         if is_direct or is_direct_video_url(url):
             # Direct video URL - download immediately
@@ -482,23 +526,23 @@ async def extract_video_thumbnail(video_path, user_id):
     """Extract thumbnail from video file"""
     try:
         thumb_path = f"{Config.DOWNLOAD_LOCATION}/{user_id}_thumb.jpg"
-        
+
         # Use ffmpeg to extract thumbnail
         import subprocess
-        
+
         ffmpeg_cmd = [
             "ffmpeg", "-i", video_path,
             "-ss", "00:00:01", "-vframes", "1",
             "-q:v", "2", thumb_path, "-y"
         ]
-        
+
         result = subprocess.run(ffmpeg_cmd, capture_output=True, timeout=30)
-        
+
         if result.returncode == 0 and os.path.exists(thumb_path):
             # Process thumbnail
             from PIL import Image
             img = Image.open(thumb_path)
-            
+
             # Convert to RGB if needed
             if img.mode in ('RGBA', 'LA', 'P'):
                 background = Image.new('RGB', img.size, (255, 255, 255))
@@ -508,16 +552,16 @@ async def extract_video_thumbnail(video_path, user_id):
                 img = background
             elif img.mode != 'RGB':
                 img = img.convert('RGB')
-            
+
             # Resize thumbnail
             img.thumbnail((320, 240), Image.Resampling.LANCZOS)
             img.save(thumb_path, "JPEG", quality=85)
-            
+
             return thumb_path
-            
+
     except Exception as e:
         logger.error(f"Thumbnail extraction failed: {e}")
-    
+
     return None
 
 def humanbytes(size):
@@ -527,20 +571,108 @@ def humanbytes(size):
     power = 1024
 
 
+    n = 0
+    power_labels = {0: '', 1: 'K', 2: 'M', 3: 'G', 4: 'T'}
+    while size >= power and n < 4: # Use >= for accurate power calculation
+        size /= power
+        n += 1
+    return f"{size:.1f} {power_labels[n]}B"
+
+
+async def create_direct_download_buttons(url, bot, update, status_msg_id=None):
+    """Create download buttons for direct URLs"""
+    try:
+        # Create inline keyboard with download options
+        ikeyboard = []
+
+        # Video button (most common for direct downloads)
+        ikeyboard.append([
+            pyrogram.types.InlineKeyboardButton("📹 Video", callback_data=f"video=best=mp4"),
+        ])
+
+        # File button
+        ikeyboard.append([
+            pyrogram.types.InlineKeyboardButton("📁 File", callback_data=f"file=best=mp4"),
+        ])
+
+        # Auto-Click Download button (enhanced)
+        ikeyboard.append([
+            pyrogram.types.InlineKeyboardButton("🤖 Auto-Click Download", callback_data=f"ddl=auto=mp4"),
+        ])
+
+        reply_markup = pyrogram.types.InlineKeyboardMarkup(ikeyboard)
+
+        if status_msg_id:
+            # Update existing status message
+            await bot.edit_message_text(
+                chat_id=update.chat.id,
+                message_id=status_msg_id,
+                text="🔗 **Download Options Available**\n\nChoose your preferred download method:",
+                reply_markup=reply_markup
+            )
+        else:
+            # Send new message
+            await bot.send_message(
+                chat_id=update.chat.id,
+                text="🔗 **Direct Download Options**\n\nChoose your preferred download method:",
+                reply_markup=reply_markup,
+                reply_to_message_id=update.id
+            )
+
+    except Exception as e:
+        logger.error(f"Error creating direct download buttons: {e}")
+        await bot.send_message(
+            chat_id=update.chat.id,
+            text=f"❌ Error: {str(e)[:100]}...",
+            reply_to_message_id=update.id
+        )
+
+async def try_enhanced_detection(url, bot, update):
+    """Try enhanced detection for URLs that are not direct or YouTube"""
+    try:
+        status_msg = await bot.send_message(
+            chat_id=update.chat.id,
+            text="🔍 Trying enhanced detection for this URL...",
+            reply_to_message_id=update.id
+        )
+
+        # Use enhanced detection to find video URLs
+        enhanced_detector = EnhancedDownloadDetector()
+        video_urls, _ = await enhanced_detector.comprehensive_video_detection(url, bot, update.chat.id)
+
+        if video_urls:
+            await status_msg.edit_text("✅ Found potential video URLs. Offering download options:")
+            await create_direct_download_buttons(url, bot, update, status_msg_id=status_msg.id)
+        else:
+            await status_msg.edit_text("❌ Enhanced detection failed to find any video URLs.")
+            await bot.send_message(
+                chat_id=update.chat.id,
+                text="❌ Could not detect any downloadable content from this link. Please try another URL.",
+                reply_to_message_id=update.id
+            )
+    except Exception as e:
+        logger.error(f"Enhanced detection failed: {e}")
+        await bot.send_message(
+            chat_id=update.chat.id,
+            text=f"❌ An error occurred during enhanced detection: {str(e)}",
+            reply_to_message_id=update.id
+        )
+
+
 @pyrogram.Client.on_callback_query()
 async def handle_detection_callback(bot, callback_query):
     """Handle detection method callbacks"""
     data = callback_query.data
-    
+
     if data.startswith("auto_detect|"):
         url_hash = data.split("|", 1)[1]
         url = getattr(echo, '_url_cache', {}).get(url_hash, "")
         if not url:
             await callback_query.answer("❌ URL expired, please send again")
             return
-            
+
         await callback_query.answer("🔍 Starting auto detection...")
-        
+
         # Create a fake message object for processing
         fake_message = type('obj', (object,), {
             'chat': callback_query.message.chat,
@@ -548,49 +680,41 @@ async def handle_detection_callback(bot, callback_query):
             'id': callback_query.message.id,
             'text': f"auto detect {url}"
         })()
-        
+
         # Import and use auto detector
         from plugins.auto_download_detector import auto_detect_handler
         await auto_detect_handler(bot, fake_message)
-        
+
     elif data.startswith("direct_download|"):
         url_hash = data.split("|", 1)[1]
         url = getattr(echo, '_url_cache', {}).get(url_hash, "")
         if not url:
             await callback_query.answer("❌ URL expired, please send again")
             return
-            
+
         await callback_query.answer("⬇️ Starting direct download...")
-        
+
         fake_message = type('obj', (object,), {
             'chat': callback_query.message.chat,
             'from_user': callback_query.from_user,
             'id': callback_query.message.id
         })()
-        
+
         await handle_direct_video_download(bot, fake_message, url, is_direct=True)
-        
+
     elif data.startswith("enhanced_detect|"):
         url_hash = data.split("|", 1)[1]
         url = getattr(echo, '_url_cache', {}).get(url_hash, "")
         if not url:
             await callback_query.answer("❌ URL expired, please send again")
             return
-            
+
         await callback_query.answer("🌐 Starting enhanced detection...")
-        
+
         fake_message = type('obj', (object,), {
             'chat': callback_query.message.chat,
             'from_user': callback_query.from_user,
             'id': callback_query.message.id
         })()
-        
+
         await handle_direct_video_download(bot, fake_message, url, is_direct=False)
-
-
-    n = 0
-    power_labels = {0: '', 1: 'K', 2: 'M', 3: 'G', 4: 'T'}
-    while size > power:
-        size /= power
-        n += 1
-    return f"{size:.1f} {power_labels[n]}B"

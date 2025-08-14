@@ -72,6 +72,15 @@ async def get_formats_from_link(url, bot, update):
     
     # Method 1: Try standard yt-dlp
     try:
+        # Special handling for desitales2.com
+        if 'desitales2.com' in url:
+            await status_msg.edit_text("🎯 **Method 1:** Trying desitales2 redirect detection...")
+            from plugins.redirect_handler import redirect_handler
+            redirect_url = await redirect_handler.detect_and_handle_redirects(url, bot, update.chat.id)
+            if redirect_url and redirect_url != url:
+                url = redirect_url
+                await status_msg.edit_text(f"✅ **Found redirect URL:** {url[:50]}...\n\n🔄 Trying yt-dlp...")
+        
         command = [
             "yt-dlp",
             "--dump-json",
@@ -149,6 +158,41 @@ async def get_formats_from_link(url, bot, update):
     # Method 3: Create fallback response and try auto-download
     try:
         await status_msg.edit_text("🔄 **Method 3:** Creating fallback options with auto-download...")
+        
+        # Try auto-click download as a last resort
+        if 'desitales2.com' in url or 'get_file' in url:
+            await status_msg.edit_text("🤖 **Method 3:** Trying auto-click download...")
+            try:
+                from plugins.dl_button import auto_download_handler
+                download_url = await auto_download_handler.auto_click_download_with_redirects(
+                    url, bot, update.chat.id, update.id
+                )
+                if download_url and download_url != url:
+                    # Try yt-dlp on the auto-clicked URL
+                    command = [
+                        "yt-dlp",
+                        "--dump-json",
+                        "--user-agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
+                        download_url
+                    ]
+                    
+                    process = await asyncio.create_subprocess_exec(
+                        *command,
+                        stdout=asyncio.subprocess.PIPE,
+                        stderr=asyncio.subprocess.PIPE
+                    )
+                    
+                    stdout, stderr = await process.communicate()
+                    
+                    if process.returncode == 0 and stdout:
+                        try:
+                            response_json = json.loads(stdout.decode('utf-8'))
+                            await status_msg.edit_text("✅ **Auto-click + yt-dlp successful!**")
+                            return response_json
+                        except json.JSONDecodeError:
+                            pass
+            except Exception as auto_error:
+                logger.error(f"Auto-click method failed: {auto_error}")
         
         # Create a basic response for unknown sites
         fallback_response = {

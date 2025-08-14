@@ -150,6 +150,7 @@ class RedirectHandler:
     async def send_live_log(self, bot, chat_id, message):
         """Send live log updates to user"""
         try:
+            await bot.send_message(chat_id=chat_id, text=f"🔄 {message}")
             logger.info(f"Live log: {message}")
         except Exception as e:
             logger.error(f"Failed to send live log: {e}")
