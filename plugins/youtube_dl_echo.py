@@ -446,15 +446,30 @@ async def echo(bot: Client, update: Message):
                         reply_to_message_id=update.id
                     )
 
+                    # Prioritize CDN URLs over get_file URLs
+                    cdn_urls = [url for url in detected_urls if 'cdn.' in url]
+                    get_file_urls = [url for url in detected_urls if 'get_file' in url and 'cdn.' not in url]
+                    other_urls = [url for url in detected_urls if 'cdn.' not in url and 'get_file' not in url]
+                    
+                    # Reorder URLs: CDN first, then get_file, then others
+                    ordered_urls = cdn_urls + get_file_urls + other_urls
+                    
+                    await bot.send_message(
+                        chat_id=update.chat.id,
+                        text=f"🎯 **Smart URL Prioritization:**\n📍 CDN URLs: {len(cdn_urls)}\n📁 get_file URLs: {len(get_file_urls)}\n📋 Other URLs: {len(other_urls)}",
+                        reply_to_message_id=update.id
+                    )
+
                     # Try each detected URL with yt-dlp until one works
                     download_successful = False
 
-                    for i, detected_url in enumerate(detected_urls, 1):
-                        logger.info(f"Trying detected URL {i}/{len(detected_urls)} with yt-dlp: {detected_url}")
+                    for i, detected_url in enumerate(ordered_urls, 1):
+                        url_type = "CDN" if 'cdn.' in detected_url else ("get_file" if 'get_file' in detected_url else "other")
+                        logger.info(f"Trying detected URL {i}/{len(ordered_urls)} ({url_type}) with yt-dlp: {detected_url}")
 
                         status_msg = await bot.send_message(
                             chat_id=update.chat.id,
-                            text=f"🔄 Attempting download {i}/{len(detected_urls)}: Human-clicked URL",
+                            text=f"🔄 Attempting download {i}/{len(ordered_urls)}: {url_type} URL",
                             reply_to_message_id=update.id
                         )
 

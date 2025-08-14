@@ -667,6 +667,82 @@ class EnhancedDownloadDetector:
             await self.send_live_log(bot, chat_id, f"❌ Download error: {str(e)}")
             return None
 
+    async def follow_get_file_redirects(self, get_file_urls: list, bot: Client, chat_id: int):
+        """Follow get_file URLs to find final CDN video URLs"""
+        final_urls = []
+        
+        for get_file_url in get_file_urls:
+            if 'get_file' in get_file_url:
+                try:
+                    await self.send_live_log(bot, chat_id, f"🔄 Following redirect: {get_file_url[:60]}...")
+                    
+                    headers = {
+                        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
+                        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
+                        'Accept-Language': 'en-US,en;q=0.5',
+                        'Accept-Encoding': 'gzip, deflate',
+                        'DNT': '1',
+                        'Connection': 'keep-alive',
+                        'Referer': get_file_url
+                    }
+                    
+                    # Follow redirects to get final URL
+                    response = requests.get(get_file_url, headers=headers, allow_redirects=True, timeout=30)
+                    
+                    if response.status_code == 200:
+                        final_url = response.url
+                        
+                        # Check if we got a CDN URL (the final video URL)
+                        if 'cdn.' in final_url and any(ext in final_url.lower() for ext in ['.mp4', '.mkv', '.webm', '.avi', '.m4v']):
+                            await self.send_live_log(bot, chat_id, f"✅ Found CDN URL: {final_url}")
+                            final_urls.append(final_url)
+                        else:
+                            # If not a direct video URL, check the response content for video URLs
+                            await self.send_live_log(bot, chat_id, f"🔍 Analyzing redirect response for video URLs...")
+                            
+                            # Look for video URLs in the response
+                            import re
+                            video_patterns = [
+                                r'https?://cdn\.[^"\'<>\s]+\.(?:mp4|mkv|webm|m4v|avi)(?:\?[^"\'<>\s]*)?',
+                                r'"(https?://[^"]*cdn[^"]*\.(?:mp4|mkv|webm|m4v|avi)[^"]*)"',
+                                r'src\s*=\s*["\']([^"\']*cdn[^"\']*\.(?:mp4|mkv|webm|m4v|avi)[^"\']*)["\']',
+                                r'video["\']?\s*:\s*["\']([^"\']*cdn[^"\']*\.(?:mp4|mkv|webm|m4v|avi)[^"\']*)["\']'
+                            ]
+                            
+                            for pattern in video_patterns:
+                                matches = re.findall(pattern, response.text, re.IGNORECASE)
+                                for match in matches:
+                                    if isinstance(match, tuple):
+                                        match = match[0]
+                                    if match.startswith('http') and 'cdn.' in match and any(ext in match.lower() for ext in ['.mp4', '.mkv', '.webm', '.m4v', '.avi']):
+                                        await self.send_live_log(bot, chat_id, f"✅ Found CDN URL in response: {match}")
+                                        final_urls.append(match)
+                            
+                            # If still no CDN URL found, check for auto-play URLs
+                            if not final_urls:
+                                await self.send_live_log(bot, chat_id, f"🔍 Looking for auto-play video URLs...")
+                                # Sometimes the video URL is in JavaScript for auto-play
+                                js_patterns = [
+                                    r'autoplay["\']?\s*:\s*["\']([^"\']*\.mp4[^"\']*)["\']',
+                                    r'src\s*:\s*["\']([^"\']*\.mp4[^"\']*)["\']',
+                                    r'file\s*:\s*["\']([^"\']*\.mp4[^"\']*)["\']'
+                                ]
+                                
+                                for pattern in js_patterns:
+                                    matches = re.findall(pattern, response.text, re.IGNORECASE)
+                                    for match in matches:
+                                        if match.startswith('http'):
+                                            await self.send_live_log(bot, chat_id, f"✅ Found auto-play URL: {match}")
+                                            final_urls.append(match)
+                    else:
+                        await self.send_live_log(bot, chat_id, f"❌ Redirect failed: HTTP {response.status_code}")
+                        
+                except Exception as e:
+                    await self.send_live_log(bot, chat_id, f"❌ Error following redirect: {str(e)}")
+                    logger.error(f"Redirect error: {e}")
+        
+        return final_urls
+
     async def comprehensive_video_detection(self, url: str, bot: Client, chat_id: int):
         """Main method combining all detection strategies with human-like downloading"""
         await self.send_live_log(bot, chat_id, f"🚀 Starting comprehensive detection for: {url[:50]}...")
@@ -681,6 +757,13 @@ class EnhancedDownloadDetector:
         # Strategy 2: Use fallback direct analysis (reliable)
         fallback_urls = await self.fallback_direct_analysis(url, bot, chat_id)
         all_video_urls.extend(fallback_urls)
+        
+        # Strategy 2.5: Follow get_file redirects to find CDN URLs
+        get_file_urls = [url for url in fallback_urls if 'get_file' in url]
+        if get_file_urls:
+            await self.send_live_log(bot, chat_id, f"🔄 Found {len(get_file_urls)} get_file URLs, following redirects...")
+            cdn_urls = await self.follow_get_file_redirects(get_file_urls, bot, chat_id)
+            all_video_urls.extend(cdn_urls)
         
         # Strategy 3: Try selenium if available
         driver = self.setup_driver()
