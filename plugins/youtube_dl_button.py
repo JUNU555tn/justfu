@@ -314,17 +314,17 @@ async def youtube_dl_call_back(bot, update):
                             thumb_image_path = video_thumb_path
                             logger.info("Successfully extracted thumbnail from video")
                         else:
-                            logger.warning("ffmpeg thumbnail extraction failed")
+                            logger.debug("ffmpeg thumbnail extraction failed")
                     
                     except subprocess.TimeoutExpired:
-                        logger.warning("ffmpeg thumbnail extraction timed out")
+                        logger.debug("ffmpeg thumbnail extraction timed out")
                     except FileNotFoundError:
-                        logger.warning("ffmpeg not available for thumbnail extraction")
+                        logger.debug("ffmpeg not available for thumbnail extraction")
                     except Exception as ffmpeg_error:
-                        logger.error(f"ffmpeg error: {ffmpeg_error}")
+                        logger.debug(f"ffmpeg error: {ffmpeg_error}")
                 
                 except Exception as extract_error:
-                    logger.error(f"Thumbnail extraction failed: {extract_error}")
+                    logger.debug(f"Thumbnail extraction failed: {extract_error}")
             
             # Process existing thumbnail
             if os.path.exists(thumb_image_path):

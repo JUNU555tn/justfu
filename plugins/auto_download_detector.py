@@ -67,7 +67,7 @@ class EnhancedDownloadDetector:
             driver.set_page_load_timeout(30)
             return driver
         except Exception as e:
-            logger.warning(f"Browser not available, using fallback methods: {e}")
+            logger.debug(f"Browser not available, using fallback methods: {e}")
             return None
 
     def install_chrome(self):
@@ -76,12 +76,12 @@ class EnhancedDownloadDetector:
             # Check if Chrome is already installed
             result = subprocess.run(['which', 'google-chrome-stable'], capture_output=True)
             if result.returncode != 0:
-                logger.warning("Chrome not available in Nix environment. Using fallback methods only.")
+                logger.debug("Chrome not available in Nix environment. Using fallback methods only.")
                 # In Nix environment, we can't install Chrome easily, so we'll skip browser-based detection
                 return False
             return True
         except Exception as e:
-            logger.error(f"Chrome check failed: {e}")
+            logger.debug(f"Chrome check failed: {e}")
             return False
 
     async def fallback_direct_analysis(self, url: str, bot: Client, chat_id: int):
@@ -189,7 +189,8 @@ class EnhancedDownloadDetector:
                                 found_urls.append(video_src)
                                 await self.send_live_log(bot, chat_id, f"🖼️ Found iframe video: {video_src[:60]}...")
                     except Exception as e:
-                        logger.debug(f"Failed to analyze iframe {src}: {e}")
+                        if "Name or service not known" not in str(e):
+                            logger.debug(f"Failed to analyze iframe {src}: {e}")
 
             # Remove duplicates
             unique_urls = list(set(found_urls))
