@@ -71,9 +71,6 @@ async def get_formats_from_link(url, bot, update):
             "--dump-json",
             "--no-warnings",
             "--no-playlist",
-            "--write-thumbnail",
-            "--embed-metadata", 
-            "--add-metadata",
             "--geo-bypass",
             "--ignore-errors",
             url
@@ -192,11 +189,12 @@ async def create_format_buttons(bot, update, response_json):
         buttons = []
         
         # Add video format buttons with quality and size
-        for fmt in unique_video_formats[:8]:  # Limit to 8 video formats
-            size_text = humanbytes(fmt['filesize']) if fmt['filesize'] else "Unknown"
+        for fmt in unique_video_formats[:6]:  # Limit to 6 video formats to reduce data
+            size_text = humanbytes(fmt['filesize']) if fmt['filesize'] else "?"
             fps_text = f"{fmt['fps']}fps " if fmt['fps'] else ""
-            button_text = f"📹 {fmt['quality']} {fps_text}/ {size_text} ({fmt['ext']})"
-            callback_data = f"video|{fmt['format_id']}|{fmt['ext']}"
+            button_text = f"📹 {fmt['quality']} {fps_text}/ {size_text}"
+            # Shorten callback data to avoid BUTTON_DATA_INVALID error
+            callback_data = f"video|{fmt['format_id']}|{fmt['ext']}"[:64]  # Telegram limit
             buttons.append([InlineKeyboardButton(button_text, callback_data=callback_data)])
         
         # Add audio format buttons with bitrate and size
@@ -204,9 +202,10 @@ async def create_format_buttons(bot, update, response_json):
             # Sort by bitrate/quality
             audio_formats.sort(key=lambda x: x.get('filesize', 0), reverse=True)
             best_audio = audio_formats[0]
-            size_text = humanbytes(best_audio['filesize']) if best_audio['filesize'] else "Unknown"
-            button_text = f"🎵 {best_audio['quality']} / {size_text} ({best_audio['ext']})"
-            callback_data = f"audio|{best_audio['format_id']}|{best_audio['ext']}"
+            size_text = humanbytes(best_audio['filesize']) if best_audio['filesize'] else "?"
+            button_text = f"🎵 {best_audio['quality']} / {size_text}"
+            # Shorten callback data
+            callback_data = f"audio|{best_audio['format_id']}|{best_audio['ext']}"[:64]
             buttons.append([InlineKeyboardButton(button_text, callback_data=callback_data)])
         
         # Add file download option

@@ -137,7 +137,6 @@ async def youtube_dl_call_back(bot, update):
             "--max-filesize", str(Config.TG_MAX_FILE_SIZE),
             "--embed-subs",
             "--no-playlist",
-            "--extract-flat", "false",
             "--embed-metadata",
             "--add-metadata",
             "--write-thumbnail",
@@ -230,32 +229,55 @@ async def youtube_dl_call_back(bot, update):
         
         # Try to find the actual downloaded file
         actual_file = None
-        base_name = os.path.splitext(download_directory)[0]
         
-        # Check for various possible file extensions
-        possible_extensions = ['.mp4', '.mkv', '.webm', '.m4a', '.mp3']
-        
-        for ext in possible_extensions:
-            test_file = base_name + ext
-            if os.path.exists(test_file):
-                actual_file = test_file
-                break
-        
-        # If no direct match, check the download directory for any files
-        if not actual_file:
-            download_dir = os.path.dirname(download_directory)
-            if os.path.exists(download_dir):
-                files = [f for f in os.listdir(download_dir) if f.endswith(tuple(possible_extensions))]
-                if files:
-                    # Get the most recently created file
-                    files.sort(key=lambda x: os.path.getctime(os.path.join(download_dir, x)), reverse=True)
-                    actual_file = os.path.join(download_dir, files[0])
+        # First check if the expected file exists
+        if os.path.exists(download_directory):
+            actual_file = download_directory
+        else:
+            # Check for file with different extensions
+            base_name = os.path.splitext(download_directory)[0]
+            possible_extensions = ['.mp4', '.mkv', '.webm', '.m4a', '.mp3', '.flv', '.avi']
+            
+            for ext in possible_extensions:
+                test_file = base_name + ext
+                if os.path.exists(test_file):
+                    actual_file = test_file
+                    break
+            
+            # If no direct match, check the user's download directory for any recent files
+            if not actual_file:
+                download_dir = os.path.dirname(download_directory)
+                if os.path.exists(download_dir):
+                    files = []
+                    for f in os.listdir(download_dir):
+                        if f.endswith(tuple(possible_extensions)):
+                            full_path = os.path.join(download_dir, f)
+                            # Check if file was created recently (within last 5 minutes)
+                            if time.time() - os.path.getctime(full_path) < 300:
+                                files.append(full_path)
+                    
+                    if files:
+                        # Get the most recently created file
+                        files.sort(key=lambda x: os.path.getctime(x), reverse=True)
+                        actual_file = files[0]
         
         if actual_file and os.path.exists(actual_file):
             download_directory = actual_file
             file_size = os.stat(download_directory).st_size
         else:
-            raise FileNotFoundError(f"Could not find downloaded file. Expected: {download_directory}")
+            # Show available files for debugging
+            debug_dir = os.path.dirname(download_directory) if download_directory else tmp_directory_for_each_user
+            available_files = []
+            if os.path.exists(debug_dir):
+                available_files = os.listdir(debug_dir)
+            
+            error_msg = f"Could not find downloaded file.\nExpected: {download_directory}\nAvailable files: {available_files}"
+            await bot.edit_message_text(
+                chat_id=update.message.chat.id,
+                text=f"❌ Download failed: {error_msg}",
+                message_id=update.message.id
+            )
+            return False
         if file_size > Config.TG_MAX_FILE_SIZE:
             await bot.edit_message_text(
                 chat_id=update.message.chat.id,

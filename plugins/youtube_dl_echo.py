@@ -192,10 +192,19 @@ async def echo(bot, update):
         # Show auto-detection option for unsupported URLs
         from pyrogram.types import InlineKeyboardButton, InlineKeyboardMarkup
         
+        # Encode URL to avoid callback data being too large
+        import hashlib
+        url_hash = hashlib.md5(url.encode()).hexdigest()[:16]
+        
+        # Store URL mapping temporarily (in a real app, use a database)
+        if not hasattr(echo, '_url_cache'):
+            echo._url_cache = {}
+        echo._url_cache[url_hash] = url
+        
         buttons = [
-            [InlineKeyboardButton("🔍 Auto Detect Video", callback_data=f"auto_detect|{url}")],
-            [InlineKeyboardButton("⬇️ Try Direct Download", callback_data=f"direct_download|{url}")],
-            [InlineKeyboardButton("🌐 Enhanced Detection", callback_data=f"enhanced_detect|{url}")]
+            [InlineKeyboardButton("🔍 Auto Detect Video", callback_data=f"auto_detect|{url_hash}")],
+            [InlineKeyboardButton("⬇️ Try Direct Download", callback_data=f"direct_download|{url_hash}")],
+            [InlineKeyboardButton("🌐 Enhanced Detection", callback_data=f"enhanced_detect|{url_hash}")]
         ]
         
         await bot.send_message(
@@ -509,7 +518,12 @@ async def handle_detection_callback(bot, callback_query):
     data = callback_query.data
     
     if data.startswith("auto_detect|"):
-        url = data.split("|", 1)[1]
+        url_hash = data.split("|", 1)[1]
+        url = getattr(echo, '_url_cache', {}).get(url_hash, "")
+        if not url:
+            await callback_query.answer("❌ URL expired, please send again")
+            return
+            
         await callback_query.answer("🔍 Starting auto detection...")
         
         # Create a fake message object for processing
@@ -525,7 +539,12 @@ async def handle_detection_callback(bot, callback_query):
         await auto_detect_handler(bot, fake_message)
         
     elif data.startswith("direct_download|"):
-        url = data.split("|", 1)[1]
+        url_hash = data.split("|", 1)[1]
+        url = getattr(echo, '_url_cache', {}).get(url_hash, "")
+        if not url:
+            await callback_query.answer("❌ URL expired, please send again")
+            return
+            
         await callback_query.answer("⬇️ Starting direct download...")
         
         fake_message = type('obj', (object,), {
@@ -537,7 +556,12 @@ async def handle_detection_callback(bot, callback_query):
         await handle_direct_video_download(bot, fake_message, url, is_direct=True)
         
     elif data.startswith("enhanced_detect|"):
-        url = data.split("|", 1)[1]
+        url_hash = data.split("|", 1)[1]
+        url = getattr(echo, '_url_cache', {}).get(url_hash, "")
+        if not url:
+            await callback_query.answer("❌ URL expired, please send again")
+            return
+            
         await callback_query.answer("🌐 Starting enhanced detection...")
         
         fake_message = type('obj', (object,), {
