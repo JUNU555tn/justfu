@@ -191,44 +191,41 @@ async def echo(bot, update):
 
     url = update.text.strip()
 
-    # First check if it's a YouTube or yt-dlp supported URL
-    if is_youtube_url(url):
-        # YouTube/supported platform - use yt-dlp
-        await handle_youtube_download(bot, update, url)
-        return
-
-    # Check if it's a direct video URL
-    if is_direct_video_url(url):
-        # Direct video URL - download immediately
-        await handle_direct_video_download(bot, update, url, is_direct=True)
-        return
-
-    # For other URLs, try yt-dlp first, then fallback to enhanced detection
-    ytdlp_success = await try_ytdlp_first(url, bot, update)
+    # Try yt-dlp for all URLs first (auto-sequential download)
+    from helper_funcs.help_uploadbot import get_formats_from_link
     
-    if not ytdlp_success:
-        # Show auto-detection option for unsupported URLs
-        from pyrogram.types import InlineKeyboardButton, InlineKeyboardMarkup
+    try:
+        # This will now automatically download the best quality if successful
+        response_json = await get_formats_from_link(url, bot, update)
         
-        # Encode URL to avoid callback data being too large
-        import hashlib
-        url_hash = hashlib.md5(url.encode()).hexdigest()[:16]
+        # If yt-dlp succeeds, the download will already be started
+        if response_json:
+            return
+            
+    except Exception as e:
+        logger.error(f"yt-dlp failed: {e}")
+    
+    # If yt-dlp fails, try enhanced detection
+    try:
+        # Check if it's a direct video URL
+        if is_direct_video_url(url):
+            await handle_direct_video_download(bot, update, url, is_direct=True)
+            return
         
-        # Store URL mapping temporarily (in a real app, use a database)
-        if not hasattr(echo, '_url_cache'):
-            echo._url_cache = {}
-        echo._url_cache[url_hash] = url
+        # Try enhanced detection for other URLs
+        status_msg = await bot.send_message(
+            chat_id=update.chat.id,
+            text="🔄 yt-dlp failed, trying enhanced detection...",
+            reply_to_message_id=update.id
+        )
         
-        buttons = [
-            [InlineKeyboardButton("🔍 Auto Detect Video", callback_data=f"auto_detect|{url_hash}")],
-            [InlineKeyboardButton("⬇️ Try Direct Download", callback_data=f"direct_download|{url_hash}")],
-            [InlineKeyboardButton("🌐 Enhanced Detection", callback_data=f"enhanced_detect|{url_hash}")]
-        ]
+        await handle_direct_video_download(bot, update, url, is_direct=False)
         
+    except Exception as e:
+        logger.error(f"All download methods failed: {e}")
         await bot.send_message(
             chat_id=update.chat.id,
-            text="🤖 **URL not recognized as a supported platform**\n\nChoose detection method:",
-            reply_markup=InlineKeyboardMarkup(buttons),
+            text=f"❌ All download methods failed.\n\nError: {str(e)}",
             reply_to_message_id=update.id
         )
 

@@ -63,13 +63,12 @@ async def get_formats_from_link(url, bot, update):
     """Get available formats from YouTube URL using multiple fallback methods"""
     json_file_path = f"{Config.DOWNLOAD_LOCATION}/{update.from_user.id}.json"
     
-    # Method 1: Try standard yt-dlp
-    try:
-        await bot.edit_message_text(
-            text="🔄 **Method 1:** Trying standard yt-dlp...",
-            chat_id=update.chat.id,
-            message_id=update.id
-        )
+    # Send initial status message instead of editing
+    status_msg = await bot.send_message(
+        chat_id=update.chat.id,
+        text="🔄 **Method 1:** Trying standard yt-dlp...",
+        reply_to_message_id=update.id
+    )
         
         command = [
             "yt-dlp",
@@ -98,7 +97,8 @@ async def get_formats_from_link(url, bot, update):
             with open(json_file_path, "w", encoding="utf8") as f:
                 json.dump(response_json, f, ensure_ascii=False, indent=4)
             
-            await create_format_buttons(bot, update, response_json)
+            await status_msg.edit_text("✅ Found formats! Starting automatic download...")
+            await auto_download_best_quality(bot, update, response_json, status_msg)
             return response_json
         else:
             logger.info(f"Method 1 failed: {stderr.decode() if stderr else 'Unknown error'}")
@@ -108,10 +108,12 @@ async def get_formats_from_link(url, bot, update):
     
     # Method 2: Try with generic extractor
     try:
-        await bot.edit_message_text(
-            text="🔄 **Method 2:** Trying generic extractor...",
+        await status_msg.edit_text("🔄 **Method 2:** Trying generic extractor...")
+    except:
+        status_msg = await bot.send_message(
             chat_id=update.chat.id,
-            message_id=update.id
+            text="🔄 **Method 2:** Trying generic extractor...",
+            reply_to_message_id=update.id
         )
         
         command = [
@@ -139,7 +141,8 @@ async def get_formats_from_link(url, bot, update):
             with open(json_file_path, "w", encoding="utf8") as f:
                 json.dump(response_json, f, ensure_ascii=False, indent=4)
             
-            await create_format_buttons(bot, update, response_json)
+            await status_msg.edit_text("✅ Found formats! Starting automatic download...")
+            await auto_download_best_quality(bot, update, response_json, status_msg)
             return response_json
         else:
             logger.info(f"Method 2 failed: {stderr.decode() if stderr else 'Unknown error'}")
@@ -149,10 +152,12 @@ async def get_formats_from_link(url, bot, update):
     
     # Method 3: Create fallback response and try auto-download
     try:
-        await bot.edit_message_text(
-            text="🔄 **Method 3:** Creating fallback options with auto-download...",
+        await status_msg.edit_text("🔄 **Method 3:** Creating fallback options with auto-download...")
+    except:
+        status_msg = await bot.send_message(
             chat_id=update.chat.id,
-            message_id=update.id
+            text="🔄 **Method 3:** Creating fallback options with auto-download...",
+            reply_to_message_id=update.id
         )
         
         # Create a basic response for unknown sites
@@ -169,17 +174,70 @@ async def get_formats_from_link(url, bot, update):
         with open(json_file_path, "w", encoding="utf8") as f:
             json.dump(fallback_response, f, ensure_ascii=False, indent=4)
         
-        await create_fallback_buttons(bot, update, fallback_response)
+        await status_msg.edit_text("🔄 Trying fallback download methods...")
+        await auto_download_best_quality(bot, update, fallback_response, status_msg)
         return fallback_response
         
     except Exception as e:
         logger.error(f"All methods failed: {e}")
-        await bot.edit_message_text(
-            text="❌ **All download methods failed!**\n\nThe video URL may not be supported or may require special authentication.",
-            chat_id=update.chat.id,
-            message_id=update.id
-        )
+        try:
+            await status_msg.edit_text("❌ **All download methods failed!**\n\nThe video URL may not be supported or may require special authentication.")
+        except:
+            await bot.send_message(
+                chat_id=update.chat.id,
+                text="❌ **All download methods failed!**\n\nThe video URL may not be supported or may require special authentication.",
+                reply_to_message_id=update.id
+            )
         return None
+
+async def auto_download_best_quality(bot, update, response_json, status_msg):
+    """Automatically download the best quality video without showing buttons"""
+    try:
+        formats = response_json.get('formats', [])
+        
+        # Find the best video format
+        best_format = None
+        best_height = 0
+        
+        for fmt in formats:
+            if fmt.get('vcodec') != 'none' and fmt.get('height'):
+                height = fmt.get('height', 0)
+                if height > best_height:
+                    best_height = height
+                    best_format = fmt
+        
+        if not best_format:
+            # Fallback to best available format
+            best_format = {"format_id": "best", "ext": "mp4", "height": 720}
+        
+        # Update status
+        await status_msg.edit_text(f"📥 Auto-downloading best quality ({best_format.get('height', 'Unknown')}p)...")
+        
+        # Create fake callback data for the youtube_dl_button
+        from plugins.youtube_dl_button import youtube_dl_call_back
+        
+        # Create a mock update object for the callback
+        class MockUpdate:
+            def __init__(self, format_data, original_update):
+                self.data = f"video|{format_data.get('format_id', 'best')}|{format_data.get('ext', 'mp4')}"
+                self.from_user = original_update.from_user
+                self.message = MockMessage(original_update, status_msg)
+        
+        class MockMessage:
+            def __init__(self, original_update, status_msg):
+                self.chat = original_update.chat
+                self.id = status_msg.id
+                self.reply_to_message = original_update
+        
+        mock_update = MockUpdate(best_format, update)
+        
+        # Call the download function
+        await youtube_dl_call_back(bot, mock_update)
+        
+    except Exception as e:
+        logger.error(f"Auto download failed: {e}")
+        await status_msg.edit_text(f"❌ Auto download failed: {str(e)}")
+        return False
 
 def humanbytes(size):
     """Convert bytes to human readable format"""
