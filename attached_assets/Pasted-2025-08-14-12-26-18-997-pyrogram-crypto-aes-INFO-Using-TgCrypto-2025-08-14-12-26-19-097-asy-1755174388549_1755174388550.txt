@@ -1,0 +1,30 @@
+2025-08-14 12:26:18,997 - pyrogram.crypto.aes - INFO - Using TgCrypto
+2025-08-14 12:26:19,097 - asyncio - DEBUG - Using selector: EpollSelector
+ * Serving Flask app 'web_server'
+ * Debug mode: off
+2025-08-14 12:26:19,230 - __main__ - INFO - Starting bot application...
+2025-08-14 12:26:19,264 - werkzeug - INFO - WARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:5000
+ * Running on http://172.31.122.98:5000
+2025-08-14 12:26:19,264 - werkzeug - INFO - Press CTRL+C to quit
+2025-08-14 12:26:31,348 - helper_funcs.help_uploadbot - ERROR - yt-dlp error: ERROR: [generic] Unable to extract flashvars; please report this issue on  https://github.com/yt-dlp/yt-dlp/issues?q= , filling out the appropriate issue template. Confirm you are on the latest version using  yt-dlp -U
+
+2025-08-14 12:26:33,247 - pyrogram.dispatcher - ERROR - 'Message' object has no attribute 'message_id'
+Traceback (most recent call last):
+  File "/home/runner/workspace/plugins/youtube_dl_button.py", line 64, in youtube_dl_call_back
+    with open(save_ytdl_json_path, "r", encoding="utf8") as f:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+FileNotFoundError: [Errno 2] No such file or directory: './DOWNLOADS/6415368038.json'
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/home/runner/workspace/.pythonlibs/lib/python3.12/site-packages/pyrogram/dispatcher.py", line 240, in handler_worker
+    await handler.callback(self.client, *args)
+  File "/home/runner/workspace/plugins/cb_buttons.py", line 124, in button
+    await youtube_dl_call_back(bot, update)
+  File "/home/runner/workspace/plugins/youtube_dl_button.py", line 69, in youtube_dl_call_back
+    message_ids=update.message.message_id,
+                ^^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: 'Message' object has no attribute 'message_id'
