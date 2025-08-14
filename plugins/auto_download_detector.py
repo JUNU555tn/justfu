@@ -85,8 +85,8 @@ class EnhancedDownloadDetector:
             return False
 
     async def fallback_direct_analysis(self, url: str, bot: Client, chat_id: int):
-        """Fallback method using direct HTTP requests and BeautifulSoup"""
-        await self.send_live_log(bot, chat_id, "🔄 Using fallback direct analysis method...")
+        """Enhanced fallback method using direct HTTP requests and BeautifulSoup"""
+        await self.send_live_log(bot, chat_id, "🔄 Using enhanced direct analysis method...")
 
         try:
             headers = {
@@ -97,7 +97,10 @@ class EnhancedDownloadDetector:
                 'DNT': '1',
                 'Connection': 'keep-alive',
                 'Upgrade-Insecure-Requests': '1',
-                'Referer': url
+                'Referer': url,
+                'Sec-Fetch-Dest': 'document',
+                'Sec-Fetch-Mode': 'navigate',
+                'Sec-Fetch-Site': 'none'
             }
 
             # Get the page content
@@ -142,18 +145,32 @@ class EnhancedDownloadDetector:
                             found_urls.append(href)
                             await self.send_live_log(bot, chat_id, f"📍 Found download link: {href[:60]}...")
 
-            # Look for video sources in script tags
+            # Look for video sources in script tags with enhanced patterns
             scripts = soup.find_all('script')
             for script in scripts:
                 if script.string:
                     content = script.string
-                    # Common video URL patterns
+                    # Enhanced video URL patterns
                     patterns = [
-                        r'file\s*[:=]\s*["\']([^"\']+\.(?:mp4|mkv|webm|avi|m4v)[^"\']*)["\']',
-                        r'src\s*[:=]\s*["\']([^"\']+\.(?:mp4|mkv|webm|avi|m4v)[^"\']*)["\']',
-                        r'video\s*[:=]\s*["\']([^"\']+\.(?:mp4|mkv|webm|avi|m4v)[^"\']*)["\']',
-                        r'url\s*[:=]\s*["\']([^"\']+\.(?:mp4|mkv|webm|avi|m4v)[^"\']*)["\']',
-                        r'https?://[^\s"\'<>]+\.(?:mp4|mkv|webm|avi|m4v)(?:\?[^\s"\'<>]*)?'
+                        r'file\s*[:=]\s*["\']([^"\']+\.(?:mp4|mkv|webm|avi|m4v|mov|flv)[^"\']*)["\']',
+                        r'src\s*[:=]\s*["\']([^"\']+\.(?:mp4|mkv|webm|avi|m4v|mov|flv)[^"\']*)["\']',
+                        r'video\s*[:=]\s*["\']([^"\']+\.(?:mp4|mkv|webm|avi|m4v|mov|flv)[^"\']*)["\']',
+                        r'url\s*[:=]\s*["\']([^"\']+\.(?:mp4|mkv|webm|avi|m4v|mov|flv)[^"\']*)["\']',
+                        r'source\s*[:=]\s*["\']([^"\']+\.(?:mp4|mkv|webm|avi|m4v|mov|flv)[^"\']*)["\']',
+                        r'videoUrl\s*[:=]\s*["\']([^"\']+\.(?:mp4|mkv|webm|avi|m4v|mov|flv)[^"\']*)["\']',
+                        r'hlsUrl\s*[:=]\s*["\']([^"\']+\.m3u8[^"\']*)["\']',
+                        r'dashUrl\s*[:=]\s*["\']([^"\']+\.mpd[^"\']*)["\']',
+                        r'https?://[^\s"\'<>]+\.(?:mp4|mkv|webm|avi|m4v|mov|flv)(?:\?[^\s"\'<>]*)?',
+                        r'https?://[^\s"\'<>]*(?:cdn|stream|video|media)[^\s"\'<>]*\.(?:mp4|mkv|webm|avi|m4v)(?:\?[^\s"\'<>]*)?',
+                        r'"(https?://[^"]*\.(?:mp4|mkv|webm|avi|m4v)[^"]*)"',
+                        r"'(https?://[^']*\.(?:mp4|mkv|webm|avi|m4v)[^']*)'",
+                        # Developer tools patterns
+                        r'Network\.responseReceived.*?"url":\s*"([^"]+\.(?:mp4|mkv|webm|avi|m4v)[^"]*)"',
+                        r'XHR.*?(https?://[^\s"\'<>]+\.(?:mp4|mkv|webm|avi|m4v)(?:\?[^\s"\'<>]*)?)',
+                        # Player specific patterns
+                        r'jwplayer.*?file.*?["\']([^"\']+\.(?:mp4|mkv|webm|avi|m4v)[^"\']*)["\']',
+                        r'videojs.*?src.*?["\']([^"\']+\.(?:mp4|mkv|webm|avi|m4v)[^"\']*)["\']',
+                        r'plyr.*?source.*?["\']([^"\']+\.(?:mp4|mkv|webm|avi|m4v)[^"\']*)["\']'
                     ]
 
                     for pattern in patterns:

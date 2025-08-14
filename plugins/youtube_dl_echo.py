@@ -49,13 +49,47 @@ def is_youtube_url(url):
         r'(?:https?://)?(?:www\.)?(?:instagram\.com)',
         r'(?:https?://)?(?:www\.)?(?:facebook\.com)',
         r'(?:https?://)?(?:www\.)?(?:twitter\.com|x\.com)',
-        r'(?:https?://)?(?:www\.)?(?:tiktok\.com)'
+        r'(?:https?://)?(?:www\.)?(?:tiktok\.com)',
+        r'(?:https?://)?(?:www\.)?(?:streamable\.com)',
+        r'(?:https?://)?(?:www\.)?(?:reddit\.com)',
+        r'(?:https?://)?(?:www\.)?(?:imgur\.com)'
     ]
 
     for pattern in youtube_patterns:
         if re.search(pattern, url, re.IGNORECASE):
             return True
     return False
+
+def is_direct_video_url(url):
+    """Check if URL is a direct video file"""
+    video_extensions = ['.mp4', '.mkv', '.webm', '.avi', '.m4v', '.mov', '.flv', '.wmv']
+    return any(ext in url.lower() for ext in video_extensions)
+
+async def try_ytdlp_first(url, bot, update):
+    """Try yt-dlp first for all URLs to get better quality and metadata"""
+    try:
+        from helper_funcs.help_uploadbot import get_formats_from_link
+        
+        # Show initial status
+        status_msg = await bot.send_message(
+            chat_id=update.chat.id,
+            text="🔍 Trying yt-dlp for best quality download...",
+            reply_to_message_id=update.id
+        )
+
+        # Try yt-dlp extraction
+        response_json = await get_formats_from_link(url, bot, update)
+
+        if response_json:
+            await status_msg.edit_text("✅ Found formats with yt-dlp! Choose quality below:")
+            return True
+        else:
+            await status_msg.edit_text("⚠️ yt-dlp failed, trying enhanced detection...")
+            return False
+
+    except Exception as e:
+        logger.error(f"yt-dlp attempt failed: {e}")
+        return False
 
 class UnifiedProgressDisplay:
     def __init__(self):
@@ -136,13 +170,20 @@ async def echo(bot, update):
 
     url = update.text.strip()
 
-    # Check if it's a YouTube or yt-dlp supported URL
-    if is_youtube_url(url):
-        # Use yt-dlp for YouTube and supported platforms
-        await handle_youtube_download(bot, update, url)
-    else:
-        # Use enhanced detection for direct video URLs
-        await handle_direct_video_download(bot, update, url)
+    # Try yt-dlp first for all URLs as it provides better quality and metadata
+    ytdlp_success = await try_ytdlp_first(url, bot, update)
+    
+    if not ytdlp_success:
+        # If yt-dlp fails, determine best fallback method
+        if is_direct_video_url(url):
+            # Direct video URL - download immediately
+            await handle_direct_video_download(bot, update, url, is_direct=True)
+        elif is_youtube_url(url):
+            # Known platform but yt-dlp failed - try enhanced detection
+            await handle_direct_video_download(bot, update, url, is_direct=False)
+        else:
+            # Unknown URL - use comprehensive enhanced detection
+            await handle_direct_video_download(bot, update, url, is_direct=False)
 
 async def handle_youtube_download(bot, update, url):
     """Handle YouTube and yt-dlp supported URLs"""
@@ -173,7 +214,7 @@ async def handle_youtube_download(bot, update, url):
             reply_to_message_id=update.id
         )
 
-async def handle_direct_video_download(bot, update, url):
+async def handle_direct_video_download(bot, update, url, is_direct=False):
     """Handle direct video URLs with enhanced detection"""
     # Initialize unified progress display
     global unified_display
@@ -192,24 +233,29 @@ async def handle_direct_video_download(bot, update, url):
     progress_messages[update.from_user.id] = progress_msg
 
     try:
+        enhanced_detector = EnhancedDownloadDetector()
+        
         # Check if URL is already a direct video link
-        if any(ext in url.lower() for ext in ['.mp4', '.mkv', '.webm', '.avi', '.m4v']):
+        if is_direct or is_direct_video_url(url):
             # Direct video URL - download immediately
             unified_display.current_method = "Direct"
             unified_display.status = "Downloading"
             await update_progress_message_safe(bot, update.from_user.id, "⬇️ Direct video URL detected, downloading...")
 
-            enhanced_detector = EnhancedDownloadDetector()
             filepath = await enhanced_detector.human_download_file(url, bot, update.chat.id, update.from_user.id)
 
             if filepath and os.path.exists(filepath):
                 unified_display.status = "Uploading"
                 await update_progress_message_safe(bot, update.from_user.id, "📤 Uploading to Telegram...")
 
-                # Upload to Telegram
+                # Get video thumbnail
+                thumb_path = await extract_video_thumbnail(filepath, update.from_user.id)
+
+                # Upload to Telegram with thumbnail
                 await bot.send_video(
                     chat_id=update.chat.id,
                     video=filepath,
+                    thumb=thumb_path,
                     caption="✅ **Direct Video Download Complete!**\n\nDownloaded from direct video URL",
                     reply_to_message_id=update.id
                 )
@@ -217,6 +263,8 @@ async def handle_direct_video_download(bot, update, url):
                 # Clean up
                 try:
                     os.remove(filepath)
+                    if thumb_path and os.path.exists(thumb_path):
+                        os.remove(thumb_path)
                 except:
                     pass
 
@@ -385,6 +433,48 @@ async def download_progress_hook(current, total, user_id, bot, filename=""):
             unified_display.filename = filename
 
         await update_progress_message(bot, user_id, "Download")
+
+async def extract_video_thumbnail(video_path, user_id):
+    """Extract thumbnail from video file"""
+    try:
+        thumb_path = f"{Config.DOWNLOAD_LOCATION}/{user_id}_thumb.jpg"
+        
+        # Use ffmpeg to extract thumbnail
+        import subprocess
+        
+        ffmpeg_cmd = [
+            "ffmpeg", "-i", video_path,
+            "-ss", "00:00:01", "-vframes", "1",
+            "-q:v", "2", thumb_path, "-y"
+        ]
+        
+        result = subprocess.run(ffmpeg_cmd, capture_output=True, timeout=30)
+        
+        if result.returncode == 0 and os.path.exists(thumb_path):
+            # Process thumbnail
+            from PIL import Image
+            img = Image.open(thumb_path)
+            
+            # Convert to RGB if needed
+            if img.mode in ('RGBA', 'LA', 'P'):
+                background = Image.new('RGB', img.size, (255, 255, 255))
+                if img.mode == 'P':
+                    img = img.convert('RGBA')
+                background.paste(img, mask=img.split()[-1] if img.mode == 'RGBA' else None)
+                img = background
+            elif img.mode != 'RGB':
+                img = img.convert('RGB')
+            
+            # Resize thumbnail
+            img.thumbnail((320, 240), Image.Resampling.LANCZOS)
+            img.save(thumb_path, "JPEG", quality=85)
+            
+            return thumb_path
+            
+    except Exception as e:
+        logger.error(f"Thumbnail extraction failed: {e}")
+    
+    return None
 
 def humanbytes(size):
     """Convert bytes to human readable format"""
