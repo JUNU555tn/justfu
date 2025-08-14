@@ -69,7 +69,9 @@ async def get_formats_from_link(url, bot, update):
         text="🔄 **Method 1:** Trying standard yt-dlp...",
         reply_to_message_id=update.id
     )
-        
+    
+    # Method 1: Try standard yt-dlp
+    try:
         command = [
             "yt-dlp",
             "--dump-json",
@@ -109,12 +111,6 @@ async def get_formats_from_link(url, bot, update):
     # Method 2: Try with generic extractor
     try:
         await status_msg.edit_text("🔄 **Method 2:** Trying generic extractor...")
-    except:
-        status_msg = await bot.send_message(
-            chat_id=update.chat.id,
-            text="🔄 **Method 2:** Trying generic extractor...",
-            reply_to_message_id=update.id
-        )
         
         command = [
             "yt-dlp",
@@ -153,12 +149,6 @@ async def get_formats_from_link(url, bot, update):
     # Method 3: Create fallback response and try auto-download
     try:
         await status_msg.edit_text("🔄 **Method 3:** Creating fallback options with auto-download...")
-    except:
-        status_msg = await bot.send_message(
-            chat_id=update.chat.id,
-            text="🔄 **Method 3:** Creating fallback options with auto-download...",
-            reply_to_message_id=update.id
-        )
         
         # Create a basic response for unknown sites
         fallback_response = {
