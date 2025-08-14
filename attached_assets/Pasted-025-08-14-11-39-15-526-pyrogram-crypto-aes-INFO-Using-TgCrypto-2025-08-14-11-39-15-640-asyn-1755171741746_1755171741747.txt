@@ -1,0 +1,24 @@
+025-08-14 11:39:15,526 - pyrogram.crypto.aes - INFO - Using TgCrypto
+2025-08-14 11:39:15,640 - asyncio - DEBUG - Using selector: EpollSelector
+2025-08-14 11:39:15,913 - __main__ - INFO - Starting bot application...
+ * Serving Flask app 'web_server'
+ * Debug mode: off
+2025-08-14 11:39:15,936 - werkzeug - INFO - WARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:5000
+ * Running on http://172.31.65.194:5000
+2025-08-14 11:39:15,936 - werkzeug - INFO2025-08-14 11:40:35,319 - plugins.youtube_dl_echo - ERROR - YouTube download error: Telegram says: [400 MESSAGE_NOT_MODIFIED] - The message was not modified because you tried to edit it using the same content (caused by "messages.EditMessage")
+2025-08-14 11:40:51,109 - plugins.youtube_dl_button - INFO - ['yt-dlp', '-c', '--max-filesize', '2097152000', '--prefer-ffmpeg', '--extract-audio', '--audio-format', 'm4a', '--audio-quality', '140-drc', 'https://youtu.be/sYVO2Vy0F2I', '-o', './DOWNLOADS/6415368038/Torch Light Kannada Dubbed Movie_140-drc.m4a', '--no-warnings']
+2025-08-14 11:40:52,182 - plugins.youtube_dl_button - INFO - [youtube] Extracting URL: https://youtu.be/sYVO2Vy0F2I
+2025-08-14 11:40:52,183 - plugins.youtube_dl_button - INFO - [youtube] sYVO2Vy0F2I: Downloading webpage
+2025-08-14 11:40:53,275 - plugins.youtube_dl_button - INFO - [youtube] sYVO2Vy0F2I: Downloading tv client config
+2025-08-14 11:40:53,490 - plugins.youtube_dl_button - INFO - [youtube] sYVO2Vy0F2I: Downloading tv player API JSON
+2025-08-14 11:40:53,948 - plugins.youtube_dl_button - INFO - [youtube] sYVO2Vy0F2I: Downloading ios player API JSON
+2025-08-14 11:40:57,046 - plugins.youtube_dl_button - INFO - [youtube] sYVO2Vy0F2I: Downloading m3u8 information
+2025-08-14 11:40:57,623 - plugins.youtube_dl_button - INFO - [info] sYVO2Vy0F2I: Downloading 1 format(s): 251
+2025-08-14 11:40:57,707 - plugins.youtube_dl_button - INFO - [download] Destination: ./DOWNLOADS/6415368038/Torch Light Kannada Dubbed Movie_140-drc.webm
+[download] 100% of   80.60MiB in 00:00:01 at 49.54MiB/s00  - [download]   0.0% of   80.60MiB at  Unknown B/s ETA Unknown
+2025-08-14 11:41:00,370 - plugins.youtube_dl_button - INFO - [ExtractAudio] Destination: ./DOWNLOADS/6415368038/Torch Light Kannada Dubbed Movie_140-drc.m4a
+2025-08-14 11:41:59,210 - plugins.auto_download_detector - DEBUG - Failed to analyze iframe https://df.commonvisitor.site/api/spots/471023?p=1&s1=DT: HTTPSConnectionPool(host='df.commonvisitor.site', port=443): Max retries exceeded with url: /api/spots/471023?p=1&s1=DT (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x7fddb41b8350>: Failed to resolve 'df.commonvisitor.site' ([Errno -2] Name or service not known)"))
+2025-08-14 11:41:59,616 - plugins.auto_download_detector - WARNING - Chrome not available in Nix environment. Using fallback methods only.
+2025-08-14 11:41:59,616 - plugins.auto_download_detector - WARNING - Chrome not available, skipping browser-based detection
