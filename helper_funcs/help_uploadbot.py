@@ -65,18 +65,18 @@ async def get_formats_from_link(url, bot, update):
         # Create temporary JSON file path
         json_file_path = f"{Config.DOWNLOAD_LOCATION}/{update.from_user.id}.json"
         
-        # yt-dlp command to get formats with ad skipping and better extraction
+        # yt-dlp command to get formats with better extraction
         command = [
             "yt-dlp",
             "--dump-json",
             "--no-warnings",
-            "--skip-ads",
             "--no-playlist",
             "--extract-flat", "false",
             "--write-thumbnail",
             "--embed-metadata",
             "--add-metadata",
             "--geo-bypass",
+            "--ignore-errors",
             url
         ]
         

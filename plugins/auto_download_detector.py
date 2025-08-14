@@ -62,7 +62,7 @@ class EnhancedDownloadDetector:
             if not self.install_chrome():
                 logger.warning("Chrome not available, skipping browser-based detection")
                 return None
-                
+
             driver = webdriver.Chrome(options=self.chrome_options)
             driver.set_page_load_timeout(30)
             return driver
@@ -174,7 +174,7 @@ class EnhancedDownloadDetector:
                     ]
 
                     for pattern in patterns:
-                        matches = re.findall(pattern, content, re.IGNORECASE)
+                        matches = re.findall(content, pattern, re.IGNORECASE)
                         for match in matches:
                             if isinstance(match, tuple):
                                 match = match[0]
@@ -445,21 +445,25 @@ class EnhancedDownloadDetector:
 
             # Comprehensive regex patterns for video URLs
             video_patterns = [
-                r'(?:src|href|url)[\s]*[=:][\s]*["\']([^"\']*\.(?:mp4|mkv|webm|m4v|avi)[^"\']*)["\']',
-                r'file[\s]*:[\s]*["\']([^"\']*\.(?:mp4|mkv|webm|m4v|avi)[^"\']*)["\']',
-                r'video[\s]*:[\s]*["\']([^"\']*\.(?:mp4|mkv|webm|m4v|avi)[^"\']*)["\']',
-                r'source[\s]*:[\s]*["\']([^"\']*\.(?:mp4|mkv|webm|m4v|avi)[^"\']*)["\']',
-                r'https?://[^\s"\'<>]+\.(?:mp4|mkv|webm|m4v|avi)(?:\?[^\s"\'<>]*)?',
-                r'"file"[\s]*:[\s]*"([^"]*)"',
-                r'"src"[\s]*:[\s]*"([^"]*\.(?:mp4|mkv|webm|m4v|avi)[^"]*)"',
-                r'data-src[\s]*=[\s]*["\']([^"\']*\.(?:mp4|mkv|webm|m4v|avi)[^"\']*)["\']',
-                r'data-video[\s]*=[\s]*["\']([^"\']*\.(?:mp4|mkv|webm|m4v|avi)[^"\']*)["\']'
+                r'(?:src|data-src|href)=["\']([^"\']*\.(?:mp4|webm|avi|mkv|mov|flv|wmv|m4v)[^"\']*)["\']',
+                r'(?:video|source)[^>]*(?:src|data-src)=["\']([^"\']+)["\']',
+                r'(?:https?://[^"\s]+\.(?:mp4|webm|avi|mkv|mov|flv|wmv|m4v)(?:\?[^"\s]*)?)',
+                r'blob:https?://[^"\s]+',
+                r'[^"\s]*\.m3u8[^"\s]*',
+                r'[^"\s]*\.mp4[^"\s]*',
+                r'[^"\s]*\.webm[^"\s]*',
+                r'[^"\s]*\.mkv[^"\s]*',
+                r'[^"\s]*\.avi[^"\s]*',
+                r'[^"\s]*\.mov[^"\s]*',
+                r'videoUrl["\']?\s*:\s*["\']([^"\']+)["\']',
+                r'video_url["\']?\s*:\s*["\']([^"\']+)["\']',
+                r'file["\']?\s*:\s*["\']([^"\']*\.(?:mp4|webm|avi|mkv))["\']'
             ]
 
             found_urls = set()
 
             for pattern in video_patterns:
-                matches = re.findall(pattern, page_source, re.IGNORECASE)
+                matches = re.findall(page_source, pattern, re.IGNORECASE)
                 for match in matches:
                     if isinstance(match, tuple):
                         match = match[0]
@@ -680,15 +684,15 @@ class EnhancedDownloadDetector:
             try:
                 with requests.get(download_url, headers=headers, stream=True, timeout=60) as r:
                     r.raise_for_status()
-                    
+
                     # Update content length from actual response if not available from HEAD
                     if not content_length:
                         content_length = int(r.headers.get('content-length', 0))
-                    
+
                     with open(filepath, 'wb') as f:
                         downloaded = 0
                         last_update = 0
-                        
+
                         for chunk in r.iter_content(chunk_size=8192):
                             if chunk:
                                 f.write(chunk)
@@ -712,7 +716,7 @@ class EnhancedDownloadDetector:
                 else:
                     await self.send_live_log(bot, chat_id, "❌ Download failed: File is empty or doesn't exist")
                     return None
-                    
+
             except requests.exceptions.Timeout:
                 await self.send_live_log(bot, chat_id, "❌ Download timed out")
                 return None
@@ -819,7 +823,7 @@ class EnhancedDownloadDetector:
                             ]
 
                             for pattern in video_patterns:
-                                matches = re.findall(pattern, response.text, re.IGNORECASE)
+                                matches = re.findall(response.text, pattern, re.IGNORECASE)
                                 for match in matches:
                                     if isinstance(match, tuple):
                                         match = match[0]
@@ -838,7 +842,7 @@ class EnhancedDownloadDetector:
                                 ]
 
                                 for pattern in js_patterns:
-                                    matches = re.findall(pattern, response.text, re.IGNORECASE)
+                                    matches = re.findall(response.text, pattern, re.IGNORECASE)
                                     for match in matches:
                                         if match.startswith('http'):
                                             await self.send_live_log(bot, chat_id, f"✅ Found auto-play URL: {match}")

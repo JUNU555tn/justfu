@@ -52,7 +52,12 @@ def is_youtube_url(url):
         r'(?:https?://)?(?:www\.)?(?:tiktok\.com)',
         r'(?:https?://)?(?:www\.)?(?:streamable\.com)',
         r'(?:https?://)?(?:www\.)?(?:reddit\.com)',
-        r'(?:https?://)?(?:www\.)?(?:imgur\.com)'
+        r'(?:https?://)?(?:www\.)?(?:imgur\.com)',
+        r'(?:https?://)?(?:www\.)?(?:xvideos\.com)',
+        r'(?:https?://)?(?:www\.)?(?:pornhub\.com)',
+        r'(?:https?://)?(?:www\.)?(?:xhamster\.com)',
+        r'(?:https?://)?(?:www\.)?(?:redtube\.com)',
+        r'(?:https?://)?(?:www\.)?(?:youporn\.com)'
     ]
 
     for pattern in youtube_patterns:
@@ -170,20 +175,31 @@ async def echo(bot, update):
 
     url = update.text.strip()
 
-    # Try yt-dlp first for all URLs as it provides better quality and metadata
+    # First check if it's a direct video URL
+    if is_direct_video_url(url):
+        # Direct video URL - download immediately
+        await handle_direct_video_download(bot, update, url, is_direct=True)
+        return
+
+    # Try yt-dlp first for supported platforms
     ytdlp_success = await try_ytdlp_first(url, bot, update)
     
     if not ytdlp_success:
-        # If yt-dlp fails, determine best fallback method
-        if is_direct_video_url(url):
-            # Direct video URL - download immediately
-            await handle_direct_video_download(bot, update, url, is_direct=True)
-        elif is_youtube_url(url):
-            # Known platform but yt-dlp failed - try enhanced detection
-            await handle_direct_video_download(bot, update, url, is_direct=False)
-        else:
-            # Unknown URL - use comprehensive enhanced detection
-            await handle_direct_video_download(bot, update, url, is_direct=False)
+        # Show auto-detection option for unsupported URLs
+        from pyrogram.types import InlineKeyboardButton, InlineKeyboardMarkup
+        
+        buttons = [
+            [InlineKeyboardButton("🔍 Auto Detect Video", callback_data=f"auto_detect|{url}")],
+            [InlineKeyboardButton("⬇️ Try Direct Download", callback_data=f"direct_download|{url}")],
+            [InlineKeyboardButton("🌐 Enhanced Detection", callback_data=f"enhanced_detect|{url}")]
+        ]
+        
+        await bot.send_message(
+            chat_id=update.chat.id,
+            text="🤖 **yt-dlp failed to process this URL**\n\nChoose detection method:",
+            reply_markup=InlineKeyboardMarkup(buttons),
+            reply_to_message_id=update.id
+        )
 
 async def handle_youtube_download(bot, update, url):
     """Handle YouTube and yt-dlp supported URLs"""
@@ -481,6 +497,54 @@ def humanbytes(size):
     if not size:
         return "0 B"
     power = 1024
+
+
+@pyrogram.Client.on_callback_query()
+async def handle_detection_callback(bot, callback_query):
+    """Handle detection method callbacks"""
+    data = callback_query.data
+    
+    if data.startswith("auto_detect|"):
+        url = data.split("|", 1)[1]
+        await callback_query.answer("🔍 Starting auto detection...")
+        
+        # Create a fake message object for processing
+        fake_message = type('obj', (object,), {
+            'chat': callback_query.message.chat,
+            'from_user': callback_query.from_user,
+            'id': callback_query.message.id,
+            'text': f"auto detect {url}"
+        })()
+        
+        # Import and use auto detector
+        from plugins.auto_download_detector import auto_detect_handler
+        await auto_detect_handler(bot, fake_message)
+        
+    elif data.startswith("direct_download|"):
+        url = data.split("|", 1)[1]
+        await callback_query.answer("⬇️ Starting direct download...")
+        
+        fake_message = type('obj', (object,), {
+            'chat': callback_query.message.chat,
+            'from_user': callback_query.from_user,
+            'id': callback_query.message.id
+        })()
+        
+        await handle_direct_video_download(bot, fake_message, url, is_direct=True)
+        
+    elif data.startswith("enhanced_detect|"):
+        url = data.split("|", 1)[1]
+        await callback_query.answer("🌐 Starting enhanced detection...")
+        
+        fake_message = type('obj', (object,), {
+            'chat': callback_query.message.chat,
+            'from_user': callback_query.from_user,
+            'id': callback_query.message.id
+        })()
+        
+        await handle_direct_video_download(bot, fake_message, url, is_direct=False)
+
+
     n = 0
     power_labels = {0: '', 1: 'K', 2: 'M', 3: 'G', 4: 'T'}
     while size > power:
