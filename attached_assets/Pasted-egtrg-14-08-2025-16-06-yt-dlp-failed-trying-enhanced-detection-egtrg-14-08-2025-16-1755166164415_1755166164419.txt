@@ -1,0 +1,237 @@
+egtrg, [14-08-2025 16:06]
+📊 ❌ yt-dlp failed, trying enhanced detection...
+
+egtrg, [14-08-2025 16:06]
+❌ yt-dlp failed, trying enhanced detection with human-like clicking...
+
+egtrg, [14-08-2025 16:06]
+🤖 Launching human-like auto-detection and download...
+
+egtrg, [14-08-2025 16:06]
+🔄 🚀 Starting comprehensive detection for: https://www.desitales2.com/videos/hot-big-boobs-pu...
+
+egtrg, [14-08-2025 16:06]
+🔄 🔄 Trying direct download patterns...
+
+egtrg, [14-08-2025 16:07]
+📊 ❌ yt-dlp failed, trying enhanced detection...
+
+egtrg, [14-08-2025 16:07]
+❌ yt-dlp failed, trying enhanced detection with human-like clicking...
+
+egtrg, [14-08-2025 16:07]
+🤖 Launching human-like auto-detection and download...
+
+egtrg, [14-08-2025 16:07]
+🔄 🚀 Starting comprehensive detection for: https://www.desitales2.com/videos/hot-big-boobs-pu...
+
+egtrg, [14-08-2025 16:07]
+🔄 🔄 Trying direct download patterns...
+
+egtrg, [14-08-2025 16:07]
+🔄 🔄 Using fallback direct analysis method...
+
+egtrg, [14-08-2025 16:07]
+🔄 🔍 Analyzing page content...
+
+egtrg, [14-08-2025 16:07]
+🔄 📍 Found download link: https://www.desitales2.com/videos/get_file/2/240d26b0950ac6a...
+
+egtrg, [14-08-2025 16:07]
+🔄 📍 Found download link: https://www.desitales2.com/videos/get_file/2/240d26b0950ac6a...
+
+egtrg, [14-08-2025 16:07]
+🔄 🎥 Found video in script: https://www.desitales2.com/videos/get_file/2/240d26b0950ac6a...
+
+egtrg, [14-08-2025 16:07]
+🔄 🎥 Found video in script: https://www.desitales2.com/videos/get_file/2/240d26b0950ac6a...
+
+egtrg, [14-08-2025 16:07]
+🔄 🎥 Found video in script: https://www.desitales2.com/videos/get_file/1/138539ee1459b93...
+
+egtrg, [14-08-2025 16:07]
+🔄 🎥 Found video in script: https://www.desitales2.com/videos/get_file/2/240d26b0950ac6a...
+
+egtrg, [14-08-2025 16:07]
+🔄 🎥 Found video in script: https://www.desitales2.com/videos/contents/videos_screenshot...
+
+egtrg, [14-08-2025 16:07]
+🔄 🎥 Found video in script: https://www.desitales2.com/videos/contents/videos_screenshot...
+
+egtrg, [14-08-2025 16:07]
+🔄 ✅ Fallback method found 6 URLs!
+
+egtrg, [14-08-2025 16:07]
+🔄 🔄 Found 4 get_file URLs, following redirects...
+
+egtrg, [14-08-2025 16:07]
+🔄 🔄 Following redirect: https://www.desitales2.com/videos/get_file/2/240d26b0950ac6a...
+
+egtrg, [14-08-2025 16:07]
+🔄 ✅ Found CDN URL: https://cdn.desitales2.com/1000/1335/1335.mp4
+
+egtrg, [14-08-2025 16:07]
+🔄 🔄 Following redirect: https://www.desitales2.com/videos/get_file/2/240d26b0950ac6a...
+
+egtrg, [14-08-2025 16:07]
+🔄 ✅ Found CDN URL: https://cdn.desitales2.com/1000/1335/1335.mp4
+
+egtrg, [14-08-2025 16:07]
+🔄 🔄 Following redirect: https://www.desitales2.com/videos/get_file/1/138539ee1459b93...
+
+egtrg, [14-08-2025 16:07]
+🔄 🔍 Analyzing redirect response for video URLs...
+
+egtrg, [14-08-2025 16:07]
+🔄 🔄 Following redirect: https://www.desitales2.com/videos/get_file/2/240d26b0950ac6a...
+
+egtrg, [14-08-2025 16:07]
+🔄 ✅ Found CDN URL: https://cdn.desitales2.com/1000/1335/1335.mp4
+
+egtrg, [14-08-2025 16:07]
+🔄 ⚠️ Browser unavailable, using fallback methods only
+
+egtrg, [14-08-2025 16:07]
+🔄 🎉 Found 7 video URLs!
+
+egtrg, [14-08-2025 16:07]
+🔄 🎥 1. https://www.desitales2.com/videos/get_file/2/240d26b0950ac6a0a396acc71d8bdcb0833...
+
+egtrg, [14-08-2025 16:07]
+🔄 🎥 2. https://www.desitales2.com/videos/contents/videos_screenshots/1000/1335/preview_...
+
+egtrg, [14-08-2025 16:07]
+🔄 🎥 3. https://www.desitales2.com/videos/get_file/2/240d26b0950ac6a0a396acc71d8bdcb0833...
+
+egtrg, [14-08-2025 16:07]
+🔄 🎥 4. https://www.desitales2.com/videos/get_file/1/138539ee1459b93f5010f2f169f013d0df1...
+
+egtrg, [14-08-2025 16:07]
+🔄 🔍 Analyzing page content...
+
+egtrg, [14-08-2025 16:07]
+🔄 🎥 5. https://www.desitales2.com/videos/get_file/2/240d26b0950ac6a0a396acc71d8bdcb0833...
+
+egtrg, [14-08-2025 16:07]
+🔄 🎥 6. https://cdn.desitales2.com/1000/1335/1335.mp4...
+
+egtrg, [14-08-2025 16:07]
+🔄 🎥 7. https://www.desitales2.com/videos/contents/videos_screenshots/1000/1335/preview....
+
+egtrg, [14-08-2025 16:07]
+✅ Enhanced detection found 7 URLs with human-like clicking!
+
+egtrg, [14-08-2025 16:07]
+🎯 Smart URL Prioritization:
+📍 CDN URLs: 1
+📁 get_file URLs: 4
+📋 Other URLs: 2
+
+egtrg, [14-08-2025 16:07]
+✅ CDN download successful! Uploading...
+
+egtrg, [14-08-2025 16:07]
+🔄 📍 Found download link: https://www.desitales2.com/videos/get_file/2/240d26b0950ac6a...
+
+egtrg, [14-08-2025 16:07]
+📥 📋 Processing manual URL: https://cdn.desitales2.com/1000/1335/1335.mp4...
+
+egtrg, [14-08-2025 16:07]
+🔄 🎥 Found video in script: https://www.desitales2.com/videos/get_file/2/240d26b0950ac6a...
+
+egtrg, [14-08-2025 16:07]
+🔄 🎥 Found video in script: https://www.desitales2.com/videos/get_file/2/240d26b0950ac6a...
+
+egtrg, [14-08-2025 16:07]
+📥 📁 Downloading to: manual_video_1755166051.mp4
+
+egtrg, [14-08-2025 16:07]
+📥 📊 File size: 9.4 MB
+
+egtrg, [14-08-2025 16:07]
+🔄 🎥 Found video in script: https://www.desitales2.com/videos/get_file/1/138539ee1459b93...
+
+egtrg, [14-08-2025 16:07]
+📥 📥 Downloaded: 10.6% (1024.0 KB)
+
+egtrg, [14-08-2025 16:07]
+🔄 🎥 Found video in script: https://www.desitales2.com/videos/get_file/2/240d26b0950ac6a...
+
+egtrg, [14-08-2025 16:07]
+📥 📥 Downloaded: 21.3% (2.0 MB)
+
+egtrg, [14-08-2025 16:07]
+🔄 🎥 Found video in script: https://www.desitales2.com/videos/contents/videos_screenshot...
+
+egtrg, [14-08-2025 16:07]
+📥 📥 Downloaded: 31.9% (3.0 MB)
+
+egtrg, [14-08-2025 16:07]
+📥 📥 Downloaded: 42.5% (4.0 MB)
+
+egtrg, [14-08-2025 16:07]
+🔄 🎥 Found video in script: https://www.desitales2.com/videos/contents/videos_screenshot...
+
+egtrg, [14-08-2025 16:07]
+📥 📥 Downloaded: 53.2% (5.0 MB)
+
+egtrg, [14-08-2025 16:07]
+📥 📥 Downloaded: 63.8% (6.0 MB)
+
+egtrg, [14-08-2025 16:07]
+📥 📥 Downloaded: 74.4% (7.0 MB)
+
+egtrg, [14-08-2025 16:07]
+🔄 ✅ Fallback method found 6 URLs!
+
+egtrg, [14-08-2025 16:07]
+📥 📥 Downloaded: 85.1% (8.0 MB)
+
+egtrg, [14-08-2025 16:07]
+📥 📥 Downloaded: 95.7% (9.0 MB)
+
+egtrg, [14-08-2025 16:07]
+📥 ✅ Manual download completed: ./DOWNLOADS/6415368038/manual_video_1755166051.mp4
+
+egtrg, [14-08-2025 16:07]
+📥 📸 Extracting video thumbnail...
+
+egtrg, [14-08-2025 16:07]
+📥 ⚠️ Could not extract thumbnail
+
+egtrg, [14-08-2025 16:07]
+🔄 🎥 1. https://www.desitales2.com/videos/get_file/2/240d26b0950ac6a0a396acc71d8bdcb03f1...
+
+egtrg, [14-08-2025 16:07]
+🔄 🎥 2. https://www.desitales2.com/videos/get_file/1/138539ee1459b93f5010f2f169f013d0c20...
+
+egtrg, [14-08-2025 16:07]
+🔄 🎥 3. https://www.desitales2.com/videos/get_file/2/240d26b0950ac6a0a396acc71d8bdcb03f1...
+
+egtrg, [14-08-2025 16:07]
+🔄 🎥 4. https://www.desitales2.com/videos/get_file/2/240d26b0950ac6a0a396acc71d8bdcb03f1...
+
+egtrg, [14-08-2025 16:07]
+🔄 🎥 5. https://www.desitales2.com/videos/contents/videos_screenshots/1000/1335/preview....
+
+egtrg, [14-08-2025 16:07]
+🔄 🎥 6. https://www.desitales2.com/videos/contents/videos_screenshots/1000/1335/preview_...
+
+egtrg, [14-08-2025 16:07]
+✅ Enhanced detection found 6 URLs with human-like clicking!
+
+egtrg, [14-08-2025 16:07]
+✅ Direct CDN Download Complete!
+
+Downloaded from detected CDN URL with extracted thumbnail
+
+egtrg, [14-08-2025 16:07]
+ERROR...
+LazyDeveloperr said: ERROR: [generic] Unable to extract flashvars; please report this issue on  https://github.com/yt-dlp/yt-dlp/issues?q= , filling out the appropriate issue template. Confirm you are on the latest version using  yt-dlp -U
+
+egtrg, [14-08-2025 16:07]
+✅ Human-like download successful! Processing file...
+
+egtrg, [14-08-2025 16:07]
+ERROR...
+LazyDeveloperr said: ERROR: [generic] Unable to extract flashvars; please report this issue on  https://github.com/yt-dlp/yt-dlp/issues?q= , filling out the appropriate issue template. Confirm you are on the latest version using  yt-dlp -U
