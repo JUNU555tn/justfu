@@ -1,0 +1,47 @@
+2025-08-14 12:22:36,192 - pyrogram.crypto.aes - INFO - Using TgCrypto
+2025-08-14 12:22:36,273 - asyncio - DEBUG - Using selector: EpollSelector
+2025-08-14 12:22:36,399 - __main__ - INFO - Starting bot application...
+ * Serving Flask app 'web_server'
+ * Debug mode: off
+2025-08-14 12:22:36,420 - werkzeug - INFO - WARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:5000
+ * Running on http://172.31.122.98:5000
+2025-08-14 12:22:36,421 - werkzeug - INFO - Press CTRL+C to quit
+2025-08-14 12:22:52,906 - helper_funcs.help_uploadbot - ERROR - yt-dlp error: ERROR: [generic] Unable to extract flashvars; please report this issue on  https://github.com/yt-dlp/yt-dlp/issues?q= , filling out the appropriate issue template. Confirm you are on the latest version using  yt-dlp -U
+
+2025-08-14 12:22:55,094 - pyrogram.dispatcher - ERROR - not enough values to unpack (expected 3, got 2)
+Traceback (most recent call last):
+  File "/home/runner/workspace/.pythonlibs/lib/python3.12/site-packages/pyrogram/dispatcher.py", line 240, in handler_worker
+    await handler.callback(self.client, *args)
+  File "/home/runner/workspace/plugins/cb_buttons.py", line 124, in button
+    await youtube_dl_call_back(bot, update)
+  File "/home/runner/workspace/plugins/youtube_dl_button.py", line 44, in youtube_dl_call_back
+    tg_send_type, youtube_dl_format, youtube_dl_ext = cb_data.split("|")
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+ValueError: not enough values to unpack (expected 3, got 2)
+2025-08-14 12:23:39,819 - plugins.youtube_dl_button - INFO - ['yt-dlp', '-c', '--max-filesize', '2097152000', '--embed-subs', '--no-playlist', '--embed-metadata', '--add-metadata', '--write-thumbnail', '--geo-bypass', '--ignore-errors', '-f', 'best', '--hls-prefer-ffmpeg', '--merge-output-format', 'mp4', 'https://www.pussyboy.net/video/6972/teen-brunette-step-daughter-wants-step-dad-to-help-her-orgasm-taboo-sex-video/', '-o', './DOWNLOADS/6415368038/Teen Brunette Step Daughter Wants Step Dad To Help Her Orgasm Taboo Sex Video (1)_best.mp4', '--no-warnings']
+2025-08-14 12:23:40,780 - plugins.youtube_dl_button - INFO - [generic] Extracting URL: https://www.pussyboy.net/video/6972/teen-brunette-step-daughter-wants-step-dad-to-help-her-orgasm-taboo-sex-video/
+2025-08-14 12:23:40,780 - plugins.youtube_dl_button - INFO - [generic] teen-brunette-step-daughter-wants-step-dad-to-help-her-orgasm-taboo-sex-video: Downloading webpage
+2025-08-14 12:23:41,066 - plugins.youtube_dl_button - INFO - [generic] teen-brunette-step-daughter-wants-step-dad-to-help-her-orgasm-taboo-sex-video: Extracting information
+2025-08-14 12:23:41,493 - plugins.youtube_dl_button - INFO - [info] teen-brunette-step-daughter-wants-step-dad-to-help-her-orgasm-taboo-sex-video-1: Downloading 1 format(s): 0
+2025-08-14 12:23:41,494 - plugins.youtube_dl_button - INFO - [info] There are no subtitles for the requested languages
+2025-08-14 12:23:41,494 - plugins.youtube_dl_button - INFO - [info] Downloading video thumbnail 0 ...
+2025-08-14 12:23:41,508 - plugins.youtube_dl_button - INFO - [info] Writing video thumbnail 0 to: ./DOWNLOADS/6415368038/Teen Brunette Step Daughter Wants Step Dad To Help Her Orgasm Taboo Sex Video (1)_best.jpg
+2025-08-14 12:23:42,040 - plugins.youtube_dl_button - INFO - [download] Destination: ./DOWNLOADS/6415368038/Teen Brunette Step Daughter Wants Step Dad To Help Her Orgasm Taboo Sex Video (1)_best.mp4
+[download] 100% of   13.80MiB in 00:00:01 at 11.55MiB/s00  - [download]   0.0% of   13.80MiB at  Unknown B/s ETA Unknown
+2025-08-14 12:23:42,839 - plugins.youtube_dl_button - INFO - [EmbedSubtitle] There aren't any subtitles to embed
+2025-08-14 12:23:42,839 - plugins.youtube_dl_button - INFO - [Metadata] Adding metadata to "./DOWNLOADS/6415368038/Teen Brunette Step Daughter Wants Step Dad To Help Her Orgasm Taboo Sex Video (1)_best.mp4"
+2025-08-14 12:23:47,978 - plugins.youtube_dl_button - INFO - Successfully extracted thumbnail from video
+2025-08-14 12:24:41,493 - helper_funcs.help_uploadbot - ERROR - yt-dlp error: ERROR: [generic] Unable to extract flashvars; please report this issue on  https://github.com/yt-dlp/yt-dlp/issues?q= , filling out the appropriate issue template. Confirm you are on the latest version using  yt-dlp -U
+
+2025-08-14 12:24:43,443 - pyrogram.dispatcher - ERROR - not enough values to unpack (expected 3, got 2)
+Traceback (most recent call last):
+  File "/home/runner/workspace/.pythonlibs/lib/python3.12/site-packages/pyrogram/dispatcher.py", line 240, in handler_worker
+    await handler.callback(self.client, *args)
+  File "/home/runner/workspace/plugins/cb_buttons.py", line 124, in button
+    await youtube_dl_call_back(bot, update)
+  File "/home/runner/workspace/plugins/youtube_dl_button.py", line 44, in youtube_dl_call_back
+    tg_send_type, youtube_dl_format, youtube_dl_ext = cb_data.split("|")
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+ValueError: not enough values to unpack (expected 3, got 2)
