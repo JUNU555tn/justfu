@@ -168,11 +168,16 @@ async def echo(bot: Client, update: Message):
                         reply_to_message_id=update.id
                     )
                     
-                    # Upload the file
+                    # Check for custom thumbnail
+                    thumb_path = f"./DOWNLOADS/{update.from_user.id}.jpg"
+                    thumbnail = thumb_path if os.path.exists(thumb_path) else None
+                    
+                    # Upload the file with thumbnail
                     await bot.send_video(
                         chat_id=update.chat.id,
                         video=filepath,
-                        caption="✅ **Manual Download Complete!**\n\nDownloaded from new tab URL",
+                        thumb=thumbnail,
+                        caption="✅ **Manual Download Complete!**\n\nDownloaded from new tab URL with extracted thumbnail",
                         reply_to_message_id=update.id
                     )
                     
@@ -486,11 +491,16 @@ async def echo(bot: Client, update: Message):
                                 if filepath and os.path.exists(filepath):
                                     await status_msg.edit_text("✅ CDN download successful! Uploading...")
                                     
-                                    # Upload the downloaded file
+                                    # Check for custom thumbnail
+                                    thumb_path = f"./DOWNLOADS/{update.from_user.id}.jpg"
+                                    thumbnail = thumb_path if os.path.exists(thumb_path) else None
+                                    
+                                    # Upload the downloaded file with thumbnail
                                     await bot.send_video(
                                         chat_id=update.chat.id,
                                         video=filepath,
-                                        caption="✅ **Direct CDN Download Complete!**\n\nDownloaded from detected CDN URL",
+                                        thumb=thumbnail,
+                                        caption="✅ **Direct CDN Download Complete!**\n\nDownloaded from detected CDN URL with extracted thumbnail",
                                         reply_to_message_id=update.id
                                     )
                                     
