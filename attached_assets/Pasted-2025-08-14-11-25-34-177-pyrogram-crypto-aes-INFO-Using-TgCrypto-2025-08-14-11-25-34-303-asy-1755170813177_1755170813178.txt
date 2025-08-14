@@ -1,0 +1,27 @@
+2025-08-14 11:25:34,177 - pyrogram.crypto.aes - INFO - Using TgCrypto
+2025-08-14 11:25:34,303 - asyncio - DEBUG - Using selector: EpollSelector
+2025-08-14 11:25:34,613 - __main__ - INFO - Starting bot application...
+ * Serving Flask app 'web_server'
+ * Debug mode: off
+2025-08-14 11:25:34,668 - werkzeug - INFO - WARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:5000
+ * Running on http://172.31.65.194:5000
+2025-08-14 11:25:34,671 - werkzeug - INFO - Press CTRL+C to quit
+2025-08-14 11:25:49,428 - pyrogram.dispatcher - ERROR - type object 'Translation' has no attribute 'LAZY_DEVELOPER_TEXT'
+Traceback (most recent call last):
+  File "/home/runner/workspace/.pythonlibs/lib/python3.12/site-packages/pyrogram/dispatcher.py", line 240, in handler_worker
+    await handler.callback(self.client, *args)
+  File "/home/runner/workspace/plugins/help_text.py", line 48, in start
+    text=Translation.LAZY_DEVELOPER_TEXT.format(update.from_user.first_name),
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: type object 'Translation' has no attribute 'LAZY_DEVELOPER_TEXT'
+2025-08-14 11:26:22,190 - plugins.auto_download_detector - INFO - Installing Google Chrome...
+/nix/store/p79bgyzmmmddi554ckwzbqlavbkw07zh-bash-5.2p37/bin/sh: line 1: wget: command not found
+E: gnupg, gnupg2 and gnupg1 do not seem to be installed, but one of them is required for this operation
+2025-08-14 11:26:22,300 - plugins.auto_download_detector - ERROR - Failed to install Chrome: Command 'wget -q -O - https://dl.google.com/linux/linux_signing_key.pub | apt-key add -' returned non-zero exit status 255.
+2025-08-14 11:26:22,338 - plugins.auto_download_detector - ERROR - Failed to setup driver: Message: Unable to obtain driver for chrome; For documentation on this error, please visit: https://www.selenium.dev/documentation/webdriver/troubleshooting/errors/driver_location
+
+2025-08-14 11:26:28,614 - plugins.youtube_dl_echo - ERROR - Failed to update progress: Telegram says: [400 MESSAGE_NOT_MODIFIED] - The message was not modified because you tried to edit it using the same content (caused by "messages.EditMessage")
+2025-08-14 11:26:29,580 - plugins.youtube_dl_echo - ERROR - Failed to update progress: Telegram says: [400 MESSAGE_NOT_MODIFIED] - The message was not modified because you tried to edit it using the same content (caused by "messages.EditMessage")
+2025-08-14 11:26:30,576 - plugins.youtube_dl_echo - ERROR - Failed to update progress: Telegram says: [400 MESSAGE_NOT_MODIFIED] - The message was not modified because you tried to edit it using the same content (caused by "messages.EditMessage")
