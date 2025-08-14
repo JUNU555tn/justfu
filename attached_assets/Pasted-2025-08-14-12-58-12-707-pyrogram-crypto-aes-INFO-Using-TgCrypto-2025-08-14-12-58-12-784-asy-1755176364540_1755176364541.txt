@@ -1,0 +1,23 @@
+2025-08-14 12:58:12,707 - pyrogram.crypto.aes - INFO - Using TgCrypto
+2025-08-14 12:58:12,784 - asyncio - DEBUG - Using selector: EpollSelector
+2025-08-14 12:58:12,921 - __main__ - INFO - Starting bot application...
+ * Serving Flask app 'web_server'
+ * Debug mode: off
+2025-08-14 12:58:12,971 - werkzeug - INFO - WARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:5000
+ * Running on http://172.31.122.98:5000
+2025-08-14 12:58:41,125 - helper_funcs.help_uploadbot - INFO - Method 1 failed: ERROR: [generic] Unable to extract flashvars; please report this issue on  https://github.com/yt-dlp/yt-dlp/issues?q= , filling out the appropriate issue template. Confirm you are on the latest version using  yt-dlp -U
+
+2025-08-14 12:58:42,481 - helper_funcs.help_uploadbot - INFO - Method 2 failed: ERROR: [generic] Unable to extract flashvars; please report this issue on  https://github.com/yt-dlp/yt-dlp/issues?q= , filling out the appropriate issue template. Confirm you are on the latest version using  yt-dlp -U
+
+2025-08-14 12:58:43,035 - plugins.youtube_dl_button - INFO - ['yt-dlp', '-c', '--max-filesize', '2097152000', '--embed-subs', '--no-playlist', '--embed-metadata', '--add-metadata', '--write-thumbnail', '--geo-bypass', '--ignore-errors', '--user-agent', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36', '--referer', 'https://www.desitales2.com/videos/famous-pakistani-fitness-model-and-tiktoker-riding-dick-viral-clip/?asgtbndr=1', '-f', 'best', '--hls-prefer-ffmpeg', '--merge-output-format', 'mp4', 'https://www.desitales2.com/videos/famous-pakistani-fitness-model-and-tiktoker-riding-dick-viral-clip/?asgtbndr=1', '-o', './DOWNLOADS/6415368038/Unknown Video_best.mp4', '--no-warnings']
+2025-08-14 12:58:43,984 - plugins.youtube_dl_button - INFO - [generic] Extracting URL: https://www.desitales2.com/videos/famous-pakistani-fitness-model-and-tiktoker-riding-dick-viral-clip/?asgtbndr=1
+2025-08-14 12:58:43,985 - plugins.youtube_dl_button - INFO - [generic] ?asgtbndr=1: Downloading webpage
+2025-08-14 12:58:44,323 - plugins.youtube_dl_button - INFO - [generic] ?asgtbndr=1: Extracting information
+2025-08-14 12:58:44,786 - plugins.youtube_dl_button - INFO - ERROR: [generic] Unable to extract flashvars; please report this issue on  https://github.com/yt-dlp/yt-dlp/issues?q= , filling out the appropriate issue template. Confirm you are on the latest version using  yt-dlp -U
+2025-08-14 12:58:45,428 - plugins.youtube_dl_button - INFO - ERROR: Fixed output name but more than one file to download: --force-generic-extractor
+2025-08-14 12:58:46,612 - plugins.youtube_dl_button - INFO - [generic] Extracting URL: https://www.desitales2.com/videos/famous-pakistani-fitness-model-and-tiktoker-riding-dick-viral-clip/?asgtbndr=1
+2025-08-14 12:58:46,612 - plugins.youtube_dl_button - INFO - [generic] ?asgtbndr=1: Downloading webpage
+2025-08-14 12:58:46,961 - plugins.youtube_dl_button - INFO - [generic] ?asgtbndr=1: Extracting information
+2025-08-14 12:58:47,419 - plugins.youtube_dl_button - INFO - ERROR: [generic] Unable to extract flashvars; please report this issue on  https://github.com/yt-dlp/yt-dlp/issues?q= , filling out the appropriate issue template. Confirm you are on the latest version using  yt-dlp -U
